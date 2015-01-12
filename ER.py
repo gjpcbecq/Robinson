@@ -645,6 +645,8 @@ def POLRT(XCOF, COF, M, ROOTR, ROOTI, IER):
     POLRT compute the real and complex roots of a polynomial
     
     p. 35
+    
+    not working yet
     """
     flagDoubleRoot = 0 
     ROOTR = numpy.zeros((M, ))
@@ -977,8 +979,10 @@ def MAINE(N, A, B):
 #_______________________________________________________________________________
 def TRIG(LX, X, W): 
     """
-TRIG computes one value of Fourier transform by the sum of angles TRIGonometric formula for sine and cosine. 
-"""
+    TRIG computes one value of Fourier transform by the sum of angles TRIGonometric formula for sine and cosine. 
+    
+    p. 65
+    """
     COSNW = 1.
     SINNW = 0.
     SINW = SIN(W)
@@ -1080,6 +1084,11 @@ def POMAIN(N, LA, A, ADJ, P, DET, S):
 #_______________________________________________________________________________
 def FACTOR(M, N, BS): 
     """
+    FACTOR
+    
+    p. 197
+    
+    not tested yet
     """
     NX = 49
     XCOF = numpy.empty((NX + 1, ))
@@ -1223,7 +1232,6 @@ def FACTOR(M, N, BS):
     HEAT(M, M, N, B, M, M, N, B, N, TEMP)
 #    return (LR, R, LAJ, AJ, LDETR, DETR, NZR, ZR, ZB, LRR, RR, FACT, DIAGCR, P, PINV, V, TEMP, B, BZ1, RZ1, W, BZINV)
     return (LR, R, LAJ, AJ, LDETR, DETR, NZR, ZR, ZB, B)
-
 #_______________________________________________________________________________
 #_______________________________________________________________________________
 def plotMacro(L, N, G): 

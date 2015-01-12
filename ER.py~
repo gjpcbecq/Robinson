@@ -488,13 +488,15 @@ def EUREKA(LR, R, G, F, A):
         for J in range(L3): 
             K = L - J
             F[J] += F[L] * A[K]
+            print(J, L, K)
         print((LR, L, numpy.round(F, 2)))
         if (L == LR - 1): 
             return (F, A)
         D = 0.0
         Q = 0.0
-        for I in range(L):
-            K = L - I 
+        for I in range(L + 1):
+            K = L - I + 1
+            print(I, K)
             D += A[I] * R[K]
             Q += F[I] * R[K] 
     return (F, A)
