@@ -29,6 +29,8 @@ REAL = numpy.real
 AIMAG = numpy.imag
 SQRT = numpy.sqrt
 ATAN = math.atan
+def SQRT(a): 
+    return pow(a, 0.5)
 #_______________________________________________________________________________
 #_______________________________________________________________________________
 sunspot_X = numpy.array([
@@ -109,7 +111,91 @@ def compute_root(COF, ALPHA, N, SUMSQ, ROOTI, ROOTR, N2, X, Y):
         N2 += 1
     return (COF, ROOTI, ROOTR, N2)
     
-
+#_______________________________________________________________________________
+#_______________________________________________________________________________
+def AUGURY(N, LX, X, LR, R, SPIKE, FLOOR, LF, F, LY, Y, ERROR):
+    """
+    AUGURY
+    
+    p. 99
+    """
+    R = HEAT(N, 1, LX, X, N, 1, LX, X, LR, R)
+    RT = 0.0
+    for I in range(N): 
+        J = I * N + I
+        R[J] *= (1. + SPIKE)
+        RT += R[J]
+    NNLR = N * N * LR
+    for L in range(LR): 
+        (F, Y, VF, VB, Y[NNLR]) = OMEN(N, L, R, F, Y, VF, VB, Y[NNLR])
+        Q = 0.0
+        for I in range(N): 
+            J = I * N + I
+            Q += VF[J]
+        ERROR[L] = Q / RT
+        LF = L + 1
+        if (ERROR[L] <= FLOOR): 
+            LY = LX + LF - 1
+            break
+    Y = BRAINY(N, N, LR, F, N, 1, LX, X, Y)
+    return (R, LF, F, LY, Y, ERROR)
+#_______________________________________________________________________________
+#_______________________________________________________________________________
+def OMEN(N, L, R, AF, AB, VF, VB, SP): 
+    """
+    OMEN 
+    
+    p. 99
+    """
+    if (L == 1):
+        VF = MOVE(N * N, R, 0, VF, 0)
+        VB = MOVE(N * N, R, 0, VB, 0)
+        AF = ZERO(N * N, AF)
+        for I in range(N):
+            AF[I, I, 0] = 1.
+        AB = MOVE(N * N, AF, AB)
+        return (AF, AB, VF, VB, SP)
+    ZZO = 1
+    DB = HEAT(N, N, L - 1, AB, N, N, L - 1, R[1], 1, DB)
+    for I in range(N): 
+        for J in range(N): 
+            IJ = I * N + J
+            JI = J * N + I
+            DF[IJ] = DB[JI]
+    SP = MAINE(N, VB, SP)
+    CF = BRAINY(N, N, 1, DF, N, N, 1, SP, CF)
+    SP = MAINE(N, VF, SP)
+    CB = BRAINY(N, N, 1, DB, N, N, 1, SP, CB)
+    SP[ZZO: ZZO + N * N * (L - 1)] = MOVE(N * N * (L - 1), AB, 
+        SP[ZZO: ZZO + N * N * (L - 1)])
+    SP = ZERO(N * N, SP)
+    AB = MOVE(N * N * L, SP, AB)
+    ZZL = L
+    SP = ZERO(N * N, AF[ZZL])
+    AF = FORM(N, N, L, AB, CB, AF)
+    SP = FORM(N, N, L, AF, CF, SP)
+    AF = FORM(N, N, L, VF, CF, AF)
+    DF = FORM(N, N, L, VB, CB, DF)
+    return (F, Y, VF, VB, Y)
+#_______________________________________________________________________________
+#_______________________________________________________________________________
+def FORM(): 
+    """
+    FORM 
+    
+    p. 100
+    """
+    for I in range(M): 
+        for J in range(N): 
+            for II in range(N): 
+                for K in range(L):
+                    IJK = I + J * M + II * M * N
+                    III = I + II * M 
+                    IIJK = II + J * N + K * N * N
+                    A[IJK] -= B[III] * C[IIJK]
+        return A
+#_______________________________________________________________________________
+#_______________________________________________________________________________
 def ATAN2(Y, X): 
     """    
 Description:
@@ -235,6 +321,38 @@ def DOT(L, X, Y):
     return P 
 #_______________________________________________________________________________
 #_______________________________________________________________________________
+def DOTR(L, X, Y):
+    """
+    DOTR: DOT product reverse of two vectors
+    
+    p. 20 
+    
+    P: the dot product 
+    """
+    P = 0.0
+    if (L <= 0) : 
+        return P 
+    for I in range(L): 
+        J = L - I - 1
+        P += X[I] * Y[J]
+    return P 
+#_______________________________________________________________________________
+#_______________________________________________________________________________
+def REVERS(LX, X): 
+    """
+    REVERS reverse the order of the element
+    
+    p.22
+    """
+    L = LX / 2
+    for I in range(L):
+        J = LX - I - 1
+        TEMP = X[I]
+        X[I] = X[J]
+        X[J] = TEMP
+    return X
+#_______________________________________________________________________________
+#_______________________________________________________________________________
 def CROSS(LX, X, LY, Y, LG):
     """
     CROSS: CROSS correlation
@@ -323,6 +441,56 @@ def SINTAB(M):
     for I in range(MM): 
         TABLE[I] = SIN(float(I) * 2 * pi / FM)
     return TABLE
+#_______________________________________________________________________________
+#_______________________________________________________________________________
+def POLYDV(N, DVS, M, DVD, L, Q)
+    """
+    POLYDV divide one polynomial by an other, that is, to deconvolve one signal by another. 
+    
+    p. 31
+    """
+    Q = numpy.zeros((L, ))
+    Q = MOVE(MIN0(M, L), DVD, 0, Q, 0)
+    for I in range(L):
+        Q[I] /= DVS[0]
+        if (I == L - 1): 
+            return 
+        K = I
+        ISUB = MIN0(N - 1, L - I)
+        for J in range(ISUB): 
+            K += 1
+            Q[K] -= Q[I] * DVS[J + 1]
+    return Q
+#_______________________________________________________________________________
+#_______________________________________________________________________________
+def PSQRT(N, C, M, A):
+    """
+    PSQRT finds the first m + 1 coefficients of the square-root power series
+    
+    $$ (c_0 + c_1 \, z + \cdots + c_n \, z^n) ^{0.5} = a_0 + a_1 \, z +
+     + a_2 \, z^2 + \cdots $$
+     
+    p. 32
+    """
+    A[0] = SQRT(C[0])
+    TA = 2 * A[0]
+    A[1] = C[1] / TA
+    A[2] = (C[2] - A[1] * A[1]) / TA
+    for I in range(3, M): 
+        if (I > N): 
+            PA = 0.
+        else : 
+            PA = C[I]
+        PS = 0.
+        IH = I / 2
+        for J in range(1, IH): 
+            K = I - J
+            PS += A[J] * A[K]
+        PA -= 2. * PS
+        if (2 * IH != I): 
+            PA -= A[IH] * A[IH]
+        A[I] = PA / TA
+    return A
 #_______________________________________________________________________________
 #_______________________________________________________________________________
 def POLYEV(LA, A, Z, AZ): 
@@ -831,6 +999,35 @@ def SIMEQ1(M, N, A, B, C):
     return A
 #_______________________________________________________________________________
 #_______________________________________________________________________________
+def NORMEN(LX, X): 
+    """
+    NORMEN normalize an array by dividing each element by the RMS energy
+    
+    p.23
+    """
+    E = 0.
+    for I in range(LX):
+        E += X[I] * X[I]
+    E = SQRT(E)
+    for I in range(LX): 
+        X[I] /= E
+    return X
+#_______________________________________________________________________________
+#_______________________________________________________________________________
+def NORM1(LX, X): 
+    """
+    NORM1 normalize an array by its first element
+    
+    p.23
+    """
+    X1 = X[0]
+    if (LX <= 0): 
+        return X
+    for I in range(LX): 
+        X[I] /= X1
+    return X
+#_______________________________________________________________________________
+#_______________________________________________________________________________
 def NORMEQ(N, M, LF, R, G): 
     """
     NORMEQ: normal equation
@@ -975,6 +1172,34 @@ def MAINE(N, A, B):
                 B[IJ] += B[IM] * B[MJ] * EK
 #    print(M, B)
     return B 
+#_______________________________________________________________________________
+#_______________________________________________________________________________
+def MINSN(LX, X, XMIN, INDEX): 
+    """
+    MINSN find the minimum element of an array, taking into account the algebraic signs of the elements. 
+    
+    p. 21
+    """
+    INDEX = 0
+    for I in range(LX): 
+        if (X[INDEX] < X[I]): 
+            INDEX = I
+        XMIN = X[INDEX]
+    return (XMIN, INDEX)
+#_______________________________________________________________________________
+#_______________________________________________________________________________
+def MAXSN(LX, X, XMAX, INDEX): 
+    """
+    MAXSN find the maximum element of an array, taking into account the algebraic signs of the elements. 
+    
+    p. 21
+    """
+    INDEX = 0
+    for I in range(LX): 
+        if (X[INDEX] > X[I]): 
+            INDEX = I
+        XMAX = X[INDEX]
+    return (XMAX, INDEX)
 #_______________________________________________________________________________
 #_______________________________________________________________________________
 def TRIG(LX, X, W): 
@@ -1232,6 +1457,21 @@ def FACTOR(M, N, BS):
     HEAT(M, M, N, B, M, M, N, B, N, TEMP)
 #    return (LR, R, LAJ, AJ, LDETR, DETR, NZR, ZR, ZB, LRR, RR, FACT, DIAGCR, P, PINV, V, TEMP, B, BZ1, RZ1, W, BZINV)
     return (LR, R, LAJ, AJ, LDETR, DETR, NZR, ZR, ZB, B)
+#_______________________________________________________________________________
+#_______________________________________________________________________________
+def FOLD(LA, A, LB, B, LC, C):
+    """
+    FOLD performs polynomial multiplication or equivalently the complete transient convolution of two signals. 
+    
+    p.29
+    """
+    LC = LA + LB - 1
+    C = numpy.zeros((LC, ))
+    for I in range(LA): 
+        for J in range(LB): 
+            K = I + J
+            C[K] += A[I] * B[J] 
+    return (C, LC)
 #_______________________________________________________________________________
 #_______________________________________________________________________________
 def plotMacro(L, N, G): 
