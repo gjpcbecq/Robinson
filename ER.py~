@@ -131,17 +131,17 @@ def AUGURY(N, LX, X, LR, R, SPIKE, FLOOR, LF, F, LY, Y, ERROR):
         RT += R[J]
     NNLR = N * N * LR
     for L in range(LR): 
-        (F, Y, VF, VB, Y[NNLR:]) = OMEN(N, L, R, F, Y, 
+        (F, Y, VF, VB, Y) = OMEN(N, L, R, F, Y, 
             VF, VB, Y[NNLR:])
         Q = 0.0
         for I in range(N): 
             J = I * N + I
             Q += VF[J]
         ERROR[L] = Q / RT
-        LF = L + 1
+        LF = L
         if (ERROR[L] <= FLOOR): 
-            LY = LX + LF - 1
             break
+    LY = LX + LF
     Y = BRAINY(N, N, LR, F, N, 1, LX, X, Y)
     return (R, LF, F, LY, Y, ERROR)
 #_______________________________________________________________________________
@@ -152,6 +152,7 @@ def OMEN(N, L, R, AF, AB, VF, VB, SP):
     
     p. 99
     """
+    print("AF: ", AF)
     NMAX = 9
     DF = numpy.empty((NMAX * NMAX,))
     DB = numpy.empty((NMAX * NMAX, ))
@@ -161,36 +162,39 @@ def OMEN(N, L, R, AF, AB, VF, VB, SP):
     if (L == 1):
         VF = MOVE(N * N, R, 0, VF, 0)
         VB = MOVE(N * N, R, 0, VB, 0)
-        AF = ZERO(N * N)
+        AF[:N * N] = ZERO(N * N)
         for I in range(N):
             IIZ = I + I * N 
             AF[IIZ] = 1.
         AB = MOVE(N * N, AF, 0, AB, 0)
+        print("AF, AB, VF, VB, SP", AF, AB, VF, VB, SP)
         return (AF, AB, VF, VB, SP)
     ZZO = 1
-    print(L)
-    DB = HEAT(N, N, L - 1, AB, N, N, L - 1, R[ZZO], 1, DB)
+    DB = HEAT(N, N, L - 1, AB, N, N, L - 1, R[ZZO:], 1, DB)
+    print(R, DB)
     for I in range(N): 
         for J in range(N): 
             IJ = I * N + J
             JI = J * N + I
             DF[IJ] = DB[JI]
-    print(VB, SP)
     SP = MAINE(N, VB, SP)
     CF = BRAINY(N, N, 1, DF, N, N, 1, SP, CF)
     SP = MAINE(N, VF, SP)
     CB = BRAINY(N, N, 1, DB, N, N, 1, SP, CB)
-    print(N * N * L)
-    SP[ZZO: ZZO + N * N * (L - 1)] = MOVE(N * N * (L - 1), AB, 0, SP, ZZO)
-    SP = ZERO(N * N)
+    SP = MOVE(N * N * (L - 1), AB, 0, SP, ZZO)
+    SP[: N * N] = ZERO(N * N)
     AB = MOVE(N * N * L, SP, 0, AB, 0)
     ZZL = L - 1
     AF[ZZL: ZZL + N * N] = ZERO(N * N)
+    print("----")
+    print(AF, SP, DB, DF)
     AF = FORM(N, N, L, AB, CB, AF)
     SP = FORM(N, N, L, AF, CF, SP)
-    AF = FORM(N, N, L, VF, CF, AF)
-    DF = FORM(N, N, L, VB, CB, DF)
-    return (F, Y, VF, VB, Y)
+    DB = FORM(N, N, 1, VF, CF, DB)
+    DF = FORM(N, N, 1, VB, CB, DF)
+    print(AF, SP, DB, DF)
+    print("----")
+    return (AF, AB, VF, VB, SP)
 #_______________________________________________________________________________
 #_______________________________________________________________________________
 def FORM(M, N, L, A, B, C): 

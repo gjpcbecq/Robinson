@@ -126,22 +126,23 @@ def AUGURY(N, LX, X, LR, R, SPIKE, FLOOR, LF, F, LY, Y, ERROR):
     RT = 0.0
     for I in range(N): 
         J = I * N + I
-        print(I, J)
         R[J] *= (1. + SPIKE)
         RT += R[J]
+#        print(RT)
     NNLR = N * N * LR
     for L in range(LR): 
-        (F, Y, VF, VB, Y) = OMEN(N, L, R, F, Y, 
-            VF, VB, Y[NNLR:])
+        (F, Y, VF, VB) = OMEN(N, L + 1, R, F, Y, VF, VB, Y[NNLR:])
+#        print("Y", Y)
         Q = 0.0
         for I in range(N): 
-            J = I * N + I
+            J = I + I * N
             Q += VF[J]
-        ERROR[L] = Q / RT
-        LF = L
+        ERROR[L] = float(Q) / float(RT)
+#        print("ERROR[L], Q, RT : ", ERROR[L], Q, RT)
+        LF = L + 1
         if (ERROR[L] <= FLOOR): 
             break
-    LY = LX + LF
+    LY = LX + LF - 1
     Y = BRAINY(N, N, LR, F, N, 1, LX, X, Y)
     return (R, LF, F, LY, Y, ERROR)
 #_______________________________________________________________________________
@@ -152,54 +153,73 @@ def OMEN(N, L, R, AF, AB, VF, VB, SP):
     
     p. 99
     """
-    print("AF: ", AF)
+    npr = numpy.round
+#    print("AF: ", npr(AF, 3))
+#    print("AB: ", npr(AB, 3))
+#    print("VF: ", npr(VF, 3))
+#    print("VB: ", npr(VB, 3))
+#    print("SP: ", npr(SP, 3))
     NMAX = 9
-    DF = numpy.empty((NMAX * NMAX,))
+    DF = numpy.empty((NMAX * NMAX, ))
     DB = numpy.empty((NMAX * NMAX, ))
-    CF = numpy.empty((NMAX * NMAX,))
+    CF = numpy.empty((NMAX * NMAX, ))
     CB = numpy.empty((NMAX * NMAX, ))
-    L += 1
+#    print(L)
     if (L == 1):
         VF = MOVE(N * N, R, 0, VF, 0)
         VB = MOVE(N * N, R, 0, VB, 0)
-        AF[:N * N] = ZERO(N * N)
+        AF[: N * N] = ZERO(N * N)
         for I in range(N):
             IIZ = I + I * N 
             AF[IIZ] = 1.
+#        print(AF)
         AB = MOVE(N * N, AF, 0, AB, 0)
-        print("AF, AB, VF, VB, SP", AF, AB, VF, VB, SP)
-        return (AF, AB, VF, VB, SP)
-    ZZO = 1
+#        print("AF, AB, VF, VB, SP", npr(AF, 3), npr(AB, 3), npr(VF, 3), 
+#            npr(VB, 3), npr(SP, 3))
+        return (AF, AB, VF, VB)
+    ZZO = 1 * N * N
+#    print("N, L-1, AB, ZZO, R[ZZO] : ", N, L-1, AB, ZZO, R[ZZO:])
     DB = HEAT(N, N, L - 1, AB, N, N, L - 1, R[ZZO:], 1, DB)
-    print(R, DB)
+#    print(DB)
     for I in range(N): 
         for J in range(N): 
-            IJ = I * N + J
-            JI = J * N + I
+            IJ = I + J * N
+            JI = J + I * N
             DF[IJ] = DB[JI]
     SP = MAINE(N, VB, SP)
+#    print(VB, SP)
     CF = BRAINY(N, N, 1, DF, N, N, 1, SP, CF)
+#    print("CF : ", CF)
     SP = MAINE(N, VF, SP)
+#    print("SP : ", SP)
     CB = BRAINY(N, N, 1, DB, N, N, 1, SP, CB)
     SP = MOVE(N * N * (L - 1), AB, 0, SP, ZZO)
     SP[: N * N] = ZERO(N * N)
     AB = MOVE(N * N * L, SP, 0, AB, 0)
-    ZZL = L - 1
+    ZZL = (L - 1) * N * N
     AF[ZZL: ZZL + N * N] = ZERO(N * N)
-    print("----")
-    print(AF, SP, DB, DF)
-    AF = FORM(N, N, L, AB, CB, AF)
-    SP = FORM(N, N, L, AF, CF, SP)
-    DB = FORM(N, N, 1, VF, CF, DB)
-    DF = FORM(N, N, 1, VB, CB, DF)
-    print(AF, SP, DB, DF)
-    print("----")
-    return (AF, AB, VF, VB, SP)
+#    print("AF 1 : ", AF)
+#    print("----")
+#    print("AF, AB, VF, VB, SP", npr(AF, 3), npr(AB, 3), npr(VF, 3), 
+#        npr(VB, 3), npr(SP, 3))
+    AB = FORM(N, N, L, AB, CB, AF)
+#    print("AB : ", AB)
+#    print("AF, CF, SP", AF, CF, SP)
+    AF = FORM(N, N, L, AF, CF, SP)
+#    print("AF 2 : ", AF)
+    VF = FORM(N, N, 1, VF, CF, DB)
+#    print("VF : ", VF)
+    VB = FORM(N, N, 1, VB, CB, DF)
+#    print("VB : ", VB)
+#    print("AF, AB, VF, VB, SP", npr(AF, 3), npr(AB, 3), npr(VF, 3), 
+#        npr(VB, 3), npr(SP, 3))
+#    print("----")
+    return (AF, AB, VF, VB)
 #_______________________________________________________________________________
 #_______________________________________________________________________________
 def FORM(M, N, L, A, B, C): 
     """
-    FORM 
+    FORM form error A(i, j, k) = A(i, j, k) - B(i, ii) * c(ii, j, k)
     
     p. 100
     """
@@ -207,9 +227,10 @@ def FORM(M, N, L, A, B, C):
         for J in range(N): 
             for II in range(N): 
                 for K in range(L):
-                    IJK = I + J * M + II * M * N
+                    IJK = I + J * M + K * M * N
                     III = I + II * M 
                     IIJK = II + J * N + K * N * N
+#                    print("A[IJK], B[III], C[IIJK]", A[IJK], B[III], C[IIJK])
                     A[IJK] -= B[III] * C[IIJK]
     return A
 #_______________________________________________________________________________
@@ -311,11 +332,11 @@ def MOVE(LX, X, IX, Y, IY):
     if (cond < 0):
         K = LX - 1
         for I in range(0, LX): 
-            Y[IY + K] = X[IX + K]
+            Y[IY + K] = X[IX + K].copy()
             K -= 1
     elif (cond > 0): 
         for I in range(0, LX): 
-            Y[IY + I] = X[IX + I]
+            Y[IY + I] = X[IX + I].copy()
     else : # (cond == 0)
         pass
     return Y
@@ -784,7 +805,7 @@ def HEAT(NRX, NCX, LX, X, NRY, NCY, LY, Y, LG, G):
     p.207
     """
 #    ZERO(NRX * NRY * LG, G)
-    print(NRX, NRY, LG)
+#    print(NRX, NRY, LG)
     G = numpy.zeros((NRX * NRY * LG, ))
     MIN = MIN0(LG, LX)
     for M in range(NRX): 
@@ -793,6 +814,7 @@ def HEAT(NRX, NCX, LX, X, NRY, NCY, LY, Y, LG, G):
                 for J in range(MIN): 
                     LDOT = MIN0(LY, LX - J)
                     for I in range(LDOT): 
+#                        print("M, N, L, J, I : ", M, N, L, J, I)
                         K = I + J 
                         MNJ = M + N * NRX + J * NRX * NRY
                         MLK = M + L * NRX + K * NRX * NCX
@@ -801,14 +823,16 @@ def HEAT(NRX, NCX, LX, X, NRY, NCY, LY, Y, LG, G):
     return G
 #_______________________________________________________________________________
 #_______________________________________________________________________________
-def CPLX_HEAT(NRX, NCX, LX, X, NRY, NCY, LY, Y, LG, G): 
+def HEAT_CPLX(NRX, NCX, LX, X, NRY, NCY, LY, Y, LG, G): 
     """
     HEAT multichannel autocorrelation or cross correlation
     
     p.207
     """
 #    ZERO(NRX * NRY * LG, G)
-    G = numpy.zeros((NRX * NRY * LG, ))
+    X = X.astype("complex")
+    Y = Y.astype("complex")
+    G = numpy.zeros((NRX * NRY * LG, ), "complex")
     MIN = MIN0(LG, LX)
     for M in range(NRX): 
         for N in range(NRY):
@@ -937,7 +961,7 @@ def POLRT(XCOF, COF, M, ROOTR, ROOTI, IER):
         (COF, ROOTI, ROOTR, N2) = compute_root(COF, ALPHA, N, SUMSQ, ROOTI, ROOTR, N2, X, Y)
         print(N, COF)
     # end while (N > 0)
-    return 
+    return (ROOTR, ROOTI, IER)
 #_______________________________________________________________________________
 
 #_______________________________________________________________________________
@@ -1170,7 +1194,7 @@ def MAINE(N, A, B):
                 IJ = I + J * N
                 JM = J + M * N
                 EK -= A[MI] * B[IJ] * A[JM]
-#                print(0, 0, EK)
+#                print("EK", EK)
         B[MM] = 1.0 / EK
         for I in range(K): 
             IM = I + M * N
@@ -1344,7 +1368,9 @@ def FACTOR(M, N, BS):
     LDETR = (LR - 1) * M + 1
     NZR = 2 * NZB
     LRR = LAJ + N1
-    R = numpy.empty((M * M * LR, ), "complex")
+    print("LRR", LRR)
+# initialement    R = numpy.empty((M * M * LR, ), "complex")
+    R = numpy.empty((M * M * LAJ, ), "complex")
     AJ = numpy.empty((M * M * LAJ), "complex")
     DETR = numpy.empty((LDETR, ), "complex")
     ZR = numpy.empty((NZR, ), "complex")
@@ -1358,29 +1384,37 @@ def FACTOR(M, N, BS):
     V = numpy.empty((M * M, ), "complex")
     TEMP = numpy.empty((M * M * LDETR, ), "complex")
     B = numpy.empty((M * M * N, ), "complex")
-    BS = numpy.empty((M * M * N, ), "complex")
     BZ1 = numpy.empty((M * M, ), "complex")
     RZ1 = numpy.empty((M * M, ), "complex")
     W = numpy.empty((M * M, ), "complex")
     BZINV = numpy.empty((M * M, ), "complex")
 # complex DETP, DET, ZER, Z1
 # Compute one side of autocorrelation
-    HEAT(M, M, N, BS, M, M, N, BS, N, R[0, 0, N])
+    OON = 0 + 0 * M + (N - 1) * M * M  
+    R[OON: OON + N * M * M] = HEAT_CPLX(M, M, N, BS, M, M, N, BS, N, R[OON: ])
 # Generate other side of autocorrelation
+    print(("R", R))
     for I in range(1, N): 
         JP = N + I - 1
-        JM = N - I + 1
+        JM = N - I - 1
         for J in range(M): 
             for K in range(M): 
                 JKJM = J + K * M + JM * M * M
                 KJJP = K + J * M + JP * M * M
+                print((JP, JM, J, K, JKJM, KJJP))
                 R[JKJM] = R[KJJP]
+    print("R", R)
 # Find adjugate and autocorrelation of R
-    POMAIN(M, LR, R, AJ, RR, DETR, TEMP)
+    print("RR.shape", RR.shape)
+    print(">>> PROBLEM HERE WITH RR SHAPE <<<")
+    (AJ, RR[ : 18], DETR, TEMP) = POMAIN(M, LR, R, AJ, RR, DETR, TEMP)
+    print("RR.shape", RR.shape)
 # Find zeros of determinant
     for I in range(LDETR): 
         XCOF[I] = DETR[I].real
-    POLRT(XCOF, COF, LDETR - 1, RZR, CZR, IER)
+    IER = 0
+    (RZR, CZR, IER) = POLRT(XCOF, COF, LDETR - 1, RZR, CZR, IER)
+    print(IER)
     for I in range(NZR): 
         ZR[I] = complex(RZR[I], CZR[I])
     J = 0
@@ -1391,7 +1425,7 @@ def FACTOR(M, N, BS):
 # Choose the zeros with magnitude greater than unity to form B
             DETR[J] = ZR[I]
             J += 1
-    MOVE(NZB, DETR, ZB)
+    ZB = MOVE(NZB, DETR, 0, ZB, 0)
 # Set B = I, FACT(J, K, 1) = 1        
 # ZERO(M * M, FACT)
 # ZERO(M * M, B)
@@ -1403,13 +1437,15 @@ def FACTOR(M, N, BS):
         B[JJ0] = 1. 
     LBT = 1
 # Set RR = AJ
-    MOVE(LAJ * M * M, AJ, RR)
+    print("LAJ, M, AJ, RR : ", LAJ, M, AJ, RR)
+#    RR = MOVE(LAJ * M * M, AJ, 0, RR, 0) ? LAJ * M * M > LAJ 
+    RR = MOVE(LAJ, AJ, 0, RR, 0)
     LRRT = LAJ
 # Loop on the factors (I - Z * PINV * DIAG * P)
     for IFACTS in range(N1): 
 # Form diagonal matrix
 # ZERO(M * M, DIAG)
-        DIAG = numpy.zeros((M * M, ))
+        DIAG = numpy.zeros((M * M, ), "complex")
         for I in range(M):
             II = I + I * M
             IIFACTS = I + IFACTS * M
@@ -1417,7 +1453,7 @@ def FACTOR(M, N, BS):
 # Insert zeros in RR to get eigenvectors
         for IVECT in range(M): 
 # ZERO(M * M, CR)
-            CR = numpy.zeros((M * M, ))
+            CR = numpy.zeros((M * M, ), "complex")
             IVECTIFACTS = IVECT + IFACTS * M
             ZER = ZB[IVECTIFACTS]
             for I in range(LRRT):
@@ -1426,6 +1462,7 @@ def FACTOR(M, N, BS):
                     for J in range(M): 
                         JK = J + K * M
                         JKI = J + K * M + I * M * M
+                        print(I, J, K, JK, JKI, RR.shape, CR.shape)
                         CR[JK] += RR[JKI] * ZI 
             for I in range(M):
                 IVECTI = IVECT + I * M
@@ -1433,23 +1470,24 @@ def FACTOR(M, N, BS):
                 P[IVECTI] = CR[I]
 # Form PINV * DIAG * P
 # [1, 1, 2] becomes [1]
-        BRAINY(M, M, 1, DIAG, M, M, 1, P, FACT[1])
-        FADDEJ(M, P, PINV, DETP, DIAG, TEMP)
+        OOT = 0 + 0 * M + 1 * M * M
+        FACT[OOT: OOT + P] = BRAINY(M, M, 1, DIAG, M, M, 1, P, FACT[OOT: ])
+        (PINV, DETP, DIAG, TEMP) = FADDEJ(M, P, PINV, DETP, DIAG, TEMP)
 # [1, 1, 2] becomes [1]
-        MOVE(M * M, FACT[1])
+        P = MOVE(M * M, FACT, OOT, P, 0)
 # [1, 1, 2] becomes [1]
-        BRAINY(M, M, 1, PINV, M, M, 1, P, FACT[1])
+        FACT[OOT: OOT + P] = BRAINY(M, M, 1, PINV, M, M, 1, P, FACT[OOT: ])
 # [1, 1, 2] becomes [1]
-        SCALE(-1., M * M, FACT[1])
+        FACT[OOT: OOT + P] = SCALE(-1., M * M, FACT[OOT: ])
 # Set RR = RR * (I - Z * PINV * DIAG * P)
-        BRAINY(M, M, LRRT, RR, M, M, 2, FACT, TEMP)
+        TEMP = BRAINY(M, M, LRRT, RR, M, M, 2, FACT, TEMP)
         LRRT += 1
-        MOVE(LRRT * M * M, TEMP, RR)
+        RR = MOVE(LRRT * M * M, TEMP, 0, RR, 0)
 # Set B = B * (I - FACT)
-        BRAINY(M, M, LBT, B, M, M, 2, FACT, TEMP)
+        TEMP = BRAINY(M, M, LBT, B, M, M, 2, FACT, TEMP)
         LBT += 1
-        MOVE(M * M * LBT, TEMP, B)
-    HEAT(M, M, N, B, M, M, N, B, N, TEMP)
+        B = MOVE(M * M * LBT, TEMP, 0,  B, 0)
+    TEMP = HEAT(M, M, N, B, M, M, N, B, N, TEMP)
 # Form B(Z = 1) and R(Z = 1)
     RZ1 = numpy.zeros((M * M, ))
     BZ1 = numpy.zeros((M * M, ))
@@ -1463,15 +1501,15 @@ def FACTOR(M, N, BS):
                 JKI = JK + I * M
                 RZ1[JK] += R[JKI]
 # Form BINV(Z = 1) * R(Z = 1) * BINVTRANSP(Z = 1) = W
-    FADDEJ(M, BZ1, BZINV, DET, TEMP, W)
-    BRAINY(M, M, 1, BZINV, M, M, 1, RZ1, TEMP)
-    HEAT(M, M, 1, TEMP, M, M, 1, BZINV, 1, W)
+    (BZINV, DET, TEMP, W) = FADDEJ(M, BZ1, BZINV, DET, TEMP, W)
+    TEMP = BRAINY(M, M, 1, BZINV, M, M, 1, RZ1, TEMP)
+    W = HEAT(M, M, 1, TEMP, M, M, 1, BZINV, 1, W)
 # Triangularize W
-    TRIANG(M, W, V, TEMP)
+    TEMP = TRIANG(M, W, V, TEMP)
 # Put B in causal-chain form
-    HEAT(M, M, N, B, M, M, 1, V, N, TEMP)
-    MOVE(M * M * N, TEMP, B)
-    HEAT(M, M, N, B, M, M, N, B, N, TEMP)
+    TEMP = HEAT(M, M, N, B, M, M, 1, V, N, TEMP)
+    B = MOVE(M * M * N, TEMP, B)
+    TEMP = HEAT(M, M, N, B, M, M, N, B, N, TEMP)
 #    return (LR, R, LAJ, AJ, LDETR, DETR, NZR, ZR, ZB, LRR, RR, FACT, DIAGCR, P, PINV, V, TEMP, B, BZ1, RZ1, W, BZINV)
     return (LR, R, LAJ, AJ, LDETR, DETR, NZR, ZR, ZB, B)
 #_______________________________________________________________________________

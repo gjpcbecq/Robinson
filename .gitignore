@@ -44,3 +44,6 @@ Temporary Items
 
 # Ipython notebook
 .ipynb_checkpoints
+
+# python bytecode
+.pyc
