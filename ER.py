@@ -119,24 +119,29 @@ def AUGURY(N, LX, X, LR, R, SPIKE, FLOOR, LF, F, LY, Y, ERROR):
     
     p. 99
     """
+    NMAX = 9
+    VF = numpy.empty((NMAX * NMAX,))
+    VB = numpy.empty((NMAX * NMAX, ))
     R = HEAT(N, 1, LX, X, N, 1, LX, X, LR, R)
     RT = 0.0
     for I in range(N): 
         J = I * N + I
+        print(I, J)
         R[J] *= (1. + SPIKE)
         RT += R[J]
     NNLR = N * N * LR
     for L in range(LR): 
-        (F, Y, VF, VB, Y[NNLR]) = OMEN(N, L, R, F, Y, VF, VB, Y[NNLR])
+        (F, Y, VF, VB, Y) = OMEN(N, L, R, F, Y, 
+            VF, VB, Y[NNLR:])
         Q = 0.0
         for I in range(N): 
             J = I * N + I
             Q += VF[J]
         ERROR[L] = Q / RT
-        LF = L + 1
+        LF = L
         if (ERROR[L] <= FLOOR): 
-            LY = LX + LF - 1
             break
+    LY = LX + LF
     Y = BRAINY(N, N, LR, F, N, 1, LX, X, Y)
     return (R, LF, F, LY, Y, ERROR)
 #_______________________________________________________________________________
@@ -147,16 +152,26 @@ def OMEN(N, L, R, AF, AB, VF, VB, SP):
     
     p. 99
     """
+    print("AF: ", AF)
+    NMAX = 9
+    DF = numpy.empty((NMAX * NMAX,))
+    DB = numpy.empty((NMAX * NMAX, ))
+    CF = numpy.empty((NMAX * NMAX,))
+    CB = numpy.empty((NMAX * NMAX, ))
+    L += 1
     if (L == 1):
         VF = MOVE(N * N, R, 0, VF, 0)
         VB = MOVE(N * N, R, 0, VB, 0)
-        AF = ZERO(N * N, AF)
+        AF[:N * N] = ZERO(N * N)
         for I in range(N):
-            AF[I, I, 0] = 1.
-        AB = MOVE(N * N, AF, AB)
+            IIZ = I + I * N 
+            AF[IIZ] = 1.
+        AB = MOVE(N * N, AF, 0, AB, 0)
+        print("AF, AB, VF, VB, SP", AF, AB, VF, VB, SP)
         return (AF, AB, VF, VB, SP)
     ZZO = 1
-    DB = HEAT(N, N, L - 1, AB, N, N, L - 1, R[1], 1, DB)
+    DB = HEAT(N, N, L - 1, AB, N, N, L - 1, R[ZZO:], 1, DB)
+    print(R, DB)
     for I in range(N): 
         for J in range(N): 
             IJ = I * N + J
@@ -166,20 +181,23 @@ def OMEN(N, L, R, AF, AB, VF, VB, SP):
     CF = BRAINY(N, N, 1, DF, N, N, 1, SP, CF)
     SP = MAINE(N, VF, SP)
     CB = BRAINY(N, N, 1, DB, N, N, 1, SP, CB)
-    SP[ZZO: ZZO + N * N * (L - 1)] = MOVE(N * N * (L - 1), AB, 
-        SP[ZZO: ZZO + N * N * (L - 1)])
-    SP = ZERO(N * N, SP)
-    AB = MOVE(N * N * L, SP, AB)
-    ZZL = L
-    SP = ZERO(N * N, AF[ZZL])
+    SP = MOVE(N * N * (L - 1), AB, 0, SP, ZZO)
+    SP[: N * N] = ZERO(N * N)
+    AB = MOVE(N * N * L, SP, 0, AB, 0)
+    ZZL = L - 1
+    AF[ZZL: ZZL + N * N] = ZERO(N * N)
+    print("----")
+    print(AF, SP, DB, DF)
     AF = FORM(N, N, L, AB, CB, AF)
     SP = FORM(N, N, L, AF, CF, SP)
-    AF = FORM(N, N, L, VF, CF, AF)
-    DF = FORM(N, N, L, VB, CB, DF)
-    return (F, Y, VF, VB, Y)
+    DB = FORM(N, N, 1, VF, CF, DB)
+    DF = FORM(N, N, 1, VB, CB, DF)
+    print(AF, SP, DB, DF)
+    print("----")
+    return (AF, AB, VF, VB, SP)
 #_______________________________________________________________________________
 #_______________________________________________________________________________
-def FORM(): 
+def FORM(M, N, L, A, B, C): 
     """
     FORM 
     
@@ -193,7 +211,7 @@ def FORM():
                     III = I + II * M 
                     IIJK = II + J * N + K * N * N
                     A[IJK] -= B[III] * C[IIJK]
-        return A
+    return A
 #_______________________________________________________________________________
 #_______________________________________________________________________________
 def ATAN2(Y, X): 
@@ -443,7 +461,7 @@ def SINTAB(M):
     return TABLE
 #_______________________________________________________________________________
 #_______________________________________________________________________________
-def POLYDV(N, DVS, M, DVD, L, Q)
+def POLYDV(N, DVS, M, DVD, L, Q): 
     """
     POLYDV divide one polynomial by an other, that is, to deconvolve one signal by another. 
     
@@ -766,16 +784,16 @@ def HEAT(NRX, NCX, LX, X, NRY, NCY, LY, Y, LG, G):
     p.207
     """
 #    ZERO(NRX * NRY * LG, G)
+    print(NRX, NRY, LG)
     G = numpy.zeros((NRX * NRY * LG, ))
     MIN = MIN0(LG, LX)
     for M in range(NRX): 
         for N in range(NRY):
             for L in range(NCX): 
                 for J in range(MIN): 
-                    LDOT = MIN0(LY, LX - J + I)
-                    K = I + J - 1
+                    LDOT = MIN0(LY, LX - J)
                     for I in range(LDOT): 
-                        K = I + J - 1
+                        K = I + J 
                         MNJ = M + N * NRX + J * NRX * NRY
                         MLK = M + L * NRX + K * NRX * NCX
                         NLI = N + L * NRY + I * NRY * NCX
@@ -796,10 +814,9 @@ def CPLX_HEAT(NRX, NCX, LX, X, NRY, NCY, LY, Y, LG, G):
         for N in range(NRY):
             for L in range(NCX): 
                 for J in range(MIN): 
-                    LDOT = MIN0(LY, LX - J + I)
-                    K = I + J - 1
+                    LDOT = MIN0(LY, LX - J)
                     for I in range(LDOT): 
-                        K = I + J - 1
+                        K = I + J
                         MNJ = M + N * NRX + J * NRX * NRY
                         MLK = M + L * NRX + K * NRX * NCX
                         NLI = N + L * NRY + I * NRY * NCX
