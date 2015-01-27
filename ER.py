@@ -25,8 +25,10 @@ def MOD(a, b):
     (q, r) = divmod(a, b)
     return r 
 ABS = numpy.abs
+CABS = numpy.abs
 REAL = numpy.real
 AIMAG = numpy.imag
+CSQRT = numpy.sqrt
 SQRT = numpy.sqrt
 ATAN = math.atan
 def SQRT(a): 
@@ -168,7 +170,7 @@ def OMEN(N, L, R, AF, AB, VF, VB, SP):
     if (L == 1):
         VF = MOVE(N * N, R, 0, VF, 0)
         VB = MOVE(N * N, R, 0, VB, 0)
-        AF[: N * N] = ZERO(N * N)
+        AF = ZERO(N * N, AF)
         for I in range(N):
             IIZ = I + I * N 
             AF[IIZ] = 1.
@@ -194,10 +196,10 @@ def OMEN(N, L, R, AF, AB, VF, VB, SP):
 #    print("SP : ", SP)
     CB = BRAINY(N, N, 1, DB, N, N, 1, SP, CB)
     SP = MOVE(N * N * (L - 1), AB, 0, SP, ZZO)
-    SP[: N * N] = ZERO(N * N)
+    SP = ZERO(N * N, SP)
     AB = MOVE(N * N * L, SP, 0, AB, 0)
     ZZL = (L - 1) * N * N
-    AF[ZZL: ZZL + N * N] = ZERO(N * N)
+    AF[ZZL: ] = ZERO(N * N, AF[ZZL: ])
 #    print("AF 1 : ", AF)
 #    print("----")
 #    print("AF, AB, VF, VB, SP", npr(AF, 3), npr(AB, 3), npr(VF, 3), 
@@ -308,15 +310,11 @@ Example:
     """
 #_______________________________________________________________________________
 #_______________________________________________________________________________
-def ZERO(LX):
-    """
+def ZERO(LX, X):
     if (LX <= 0): 
         return
     for I in range(LX): 
         X[I] = 0
-    return
-    """
-    X = numpy.zeros((LX, ))
     return X
 #_______________________________________________________________________________
 #_______________________________________________________________________________
@@ -437,13 +435,13 @@ def NORMAG(LX, X):
     return X
 #_______________________________________________________________________________
 #_______________________________________________________________________________
-def MACRO(N, LX, X, LY, Y, LG): 
+def MACRO(N, LX, X, LY, Y, LG, G): 
     """
     MACRO: empirical MultichAnnel CROss correlation 
 
     p. 203
     """
-    G = numpy.zeros((LG * N * N))
+    G = numpy.zeros((LG * N * N, ))
     for I in range(N): 
         I1 = I * LX
         for J in range(N): 
@@ -1243,6 +1241,78 @@ def MAXSN(LX, X, XMAX, INDEX):
     return (XMAX, INDEX)
 #_______________________________________________________________________________
 #_______________________________________________________________________________
+def TRIANG(N, TOP, S, SPACE): 
+    """
+    TRIANG factor a positive definite symetric matrix a into the product 
+    $$ a = s^t \, s$$
+    where $s$ is a triangular matrix, and $s^t$ is the transpose os $s$. 
+    
+    p.47
+    
+    see also numpy.linalg.cholesky 
+    """
+    SPACE = ZERO(N, SPACE)
+    S = ZERO(N * N, S)
+    for I in range(N): 
+        IP = I + 1
+        IM = I - 1
+        II = I + I * N
+        S[II] = SQRT(TOP[II] - SPACE[I])
+        if (I == N - 1): 
+            break
+        for K in range(IP, N): 
+            E = 0.
+            if (IM == -1):
+                pass
+            else : 
+                for L in range(IM):
+                    LI = L + I * N
+                    LK = L + K * N
+                    E += S[LI] * S[LK]
+            IK = I + K * N
+            II = I + I * N
+            X = (TOP[IK] - E) / S[II]
+            SPACE[K] += X * X
+            S[IK] = X
+    return (S, SPACE)
+#_______________________________________________________________________________
+#_______________________________________________________________________________
+def TRIANG_CPLX(N, TOP, S, SPACE): 
+    """
+    TRIANG_CPLX factor a positive definite symetric matrix a into the product 
+    $$ a = s^t \, s$$
+    where $s$ is a triangular matrix, and $s^t$ is the transpose os $s$. 
+    
+    p.47
+    
+    see also numpy.linalg.cholesky 
+    """
+    SPACE = ZERO(N, SPACE)
+    S = ZERO(N * N, S)
+    for I in range(N): 
+        IP = I + 1
+        IM = I - 1
+        II = I + I * N
+        S[II] = CSQRT(TOP[II] - SPACE[I])
+        if (I == N - 1): 
+            break
+        for K in range(IP, N): 
+            E = 0.
+            if (IM == -1):
+                pass
+            else : 
+                for L in range(IM):
+                    LI = L + I * N
+                    LK = L + K * N
+                    E += S[LI] * S[LK]
+            IK = I + K * N
+            II = I + I * N
+            X = (TOP[IK] - E) / S[II]
+            SPACE[K] += X * X
+            S[IK] = X
+    return (S, SPACE)
+#_______________________________________________________________________________
+#_______________________________________________________________________________
 def TRIG(LX, X, W): 
     """
     TRIG computes one value of Fourier transform by the sum of angles TRIGonometric formula for sine and cosine. 
@@ -1373,6 +1443,8 @@ def FACTOR(M, N, BS):
     R = numpy.empty((M * M * LAJ, ), "complex")
     AJ = numpy.empty((M * M * LAJ), "complex")
     DETR = numpy.empty((LDETR, ), "complex")
+    DET = numpy.empty((LDETR, ), "complex")
+    DETP = numpy.empty((LDETR, ), "complex")
     ZR = numpy.empty((NZR, ), "complex")
     ZB = numpy.empty((M * (N - 1), ), "complex")
     RR = numpy.empty((M * M * LRR, ), "complex")
@@ -1429,8 +1501,8 @@ def FACTOR(M, N, BS):
 # Set B = I, FACT(J, K, 1) = 1        
 # ZERO(M * M, FACT)
 # ZERO(M * M, B)
-    FACT = numpy.zeros((M * M, ))
-    B = numpy.zeros((M * M, ))
+    FACT = ZERO(M * M, FACT)
+    B = ZERO(M * M, B)
     for J in range(M):
         JJ0 = J + J * M 
         FACT[JJ0] = 1. 
@@ -1471,14 +1543,15 @@ def FACTOR(M, N, BS):
 # Form PINV * DIAG * P
 # [1, 1, 2] becomes [1]
         OOT = 0 + 0 * M + 1 * M * M
-        FACT[OOT: OOT + P] = BRAINY(M, M, 1, DIAG, M, M, 1, P, FACT[OOT: ])
-        (PINV, DETP, DIAG, TEMP) = FADDEJ(M, P, PINV, DETP, DIAG, TEMP)
+        print(FACT)
+        FACT[OOT: OOT + M * M] = BRAINY(M, M, 1, DIAG, M, M, 1, P, FACT)
+        (PINV, DETP, DIAG, TEMP) = FADDEJ_CPLX(M, P, PINV, DETP, DIAG, TEMP)
 # [1, 1, 2] becomes [1]
         P = MOVE(M * M, FACT, OOT, P, 0)
 # [1, 1, 2] becomes [1]
-        FACT[OOT: OOT + P] = BRAINY(M, M, 1, PINV, M, M, 1, P, FACT[OOT: ])
+        FACT[OOT: OOT + M * M] = BRAINY(M, M, 1, PINV, M, M, 1, P, FACT)
 # [1, 1, 2] becomes [1]
-        FACT[OOT: OOT + P] = SCALE(-1., M * M, FACT[OOT: ])
+        FACT[OOT: ] = SCALE(-1., M * M, FACT[OOT:])
 # Set RR = RR * (I - Z * PINV * DIAG * P)
         TEMP = BRAINY(M, M, LRRT, RR, M, M, 2, FACT, TEMP)
         LRRT += 1
@@ -1487,7 +1560,7 @@ def FACTOR(M, N, BS):
         TEMP = BRAINY(M, M, LBT, B, M, M, 2, FACT, TEMP)
         LBT += 1
         B = MOVE(M * M * LBT, TEMP, 0,  B, 0)
-    TEMP = HEAT(M, M, N, B, M, M, N, B, N, TEMP)
+    TEMP = HEAT_CPLX(M, M, N, B, M, M, N, B, N, TEMP)
 # Form B(Z = 1) and R(Z = 1)
     RZ1 = numpy.zeros((M * M, ))
     BZ1 = numpy.zeros((M * M, ))
@@ -1501,17 +1574,90 @@ def FACTOR(M, N, BS):
                 JKI = JK + I * M
                 RZ1[JK] += R[JKI]
 # Form BINV(Z = 1) * R(Z = 1) * BINVTRANSP(Z = 1) = W
-    (BZINV, DET, TEMP, W) = FADDEJ(M, BZ1, BZINV, DET, TEMP, W)
+    (BZINV, DET, TEMP, W) = FADDEJ_CPLX(M, BZ1, BZINV, DET, TEMP, W)
     TEMP = BRAINY(M, M, 1, BZINV, M, M, 1, RZ1, TEMP)
-    W = HEAT(M, M, 1, TEMP, M, M, 1, BZINV, 1, W)
+    W = HEAT_CPLX(M, M, 1, TEMP, M, M, 1, BZINV, 1, W)
 # Triangularize W
-    TEMP = TRIANG(M, W, V, TEMP)
+    TEMP = TRIANG_CPLX(M, W, V, TEMP)
 # Put B in causal-chain form
-    TEMP = HEAT(M, M, N, B, M, M, 1, V, N, TEMP)
-    B = MOVE(M * M * N, TEMP, B)
-    TEMP = HEAT(M, M, N, B, M, M, N, B, N, TEMP)
+    TEMP = HEAT_CPLX(M, M, N, B, M, M, 1, V, N, TEMP)
+    B = MOVE(M * M * N, TEMP, 0, B, 0)
+    TEMP = HEAT_CPLX(M, M, N, B, M, M, N, B, N, TEMP)
 #    return (LR, R, LAJ, AJ, LDETR, DETR, NZR, ZR, ZB, LRR, RR, FACT, DIAGCR, P, PINV, V, TEMP, B, BZ1, RZ1, W, BZINV)
     return (LR, R, LAJ, AJ, LDETR, DETR, NZR, ZR, ZB, B)
+#_______________________________________________________________________________
+#_______________________________________________________________________________
+def FADDEJ(N, A, AINV, DET, ADJUG, P): 
+    """
+    FADDEJ inverts a (not necessarily symmetric) n x n matrix a by a method given by Faddeev and Sominskii. 
+    
+    p. 40
+    """
+    AINV = MOVE(N * N, A, 0, AINV, 0)
+    for K in range(N): 
+        P[K] = 0.0
+        for I in range(N): 
+            II = I + I * N
+            P[K] += AINV[II]
+        P[K] /= float(K + 1)
+        if (K == N - 1): 
+            break
+        ADJUG = MOVE(N * N, AINV, 0, ADJUG, 0)
+        for I in range(N): 
+            II = I + I * N
+            ADJUG[II] = AINV[II] - P[K]
+        AINV = BRAINY(N, N, 1, A, N, N, 1, ADJUG, AINV)
+    AINV = MOVE(N * N, ADJUG, 0, AINV, 0)
+    if (ABS(P[N - 1]) >= 1e-30): 
+        AINV = SCALE(1. / P[N - 1], N * N, AINV)
+    DET = P[N - 1]
+    if (MOD(N, 2) == 1): 
+        pass
+    else : 
+        DET = -DET
+        for I in range(N): 
+            for J in range(N): 
+                IJ = I + J * N
+                ADJUG[IJ] = - ADJUG[IJ]
+    return (AINV, DET, ADJUG, P)
+#_______________________________________________________________________________
+#_______________________________________________________________________________
+def FADDEJ_CPLX(N, A, AINV, DET, ADJUG, P): 
+    """
+    FADDEJ inverts a (not necessarily symmetric) n x n matrix a by a method given by Faddeev and Sominskii. 
+    
+    p. 40
+    """
+    AINV = MOVE(N * N, A, 0, AINV, 0)
+    for K in range(N): 
+        P[K] = 0.0
+        for I in range(N): 
+            II = I + I * N
+            P[K] += AINV[II]
+        P[K] /= float(K + 1)
+        if (K == N - 1): 
+            break
+        ADJUG = MOVE(N * N, AINV, 0, ADJUG, 0)
+        for I in range(N): 
+            II = I + I * N
+            ADJUG[II] = AINV[II] - P[K]
+        AINV = BRAINY(N, N, 1, A, N, N, 1, ADJUG, AINV)
+    AINV = MOVE(N * N, ADJUG, 0, AINV, 0)
+    if (CABS(P[N - 1]) >= 1e-30):
+        for I in range(N):
+            for J in range(N): 
+                IJ = I + J * N
+                AINV[IJ] = AINV[IJ] / P[N - 1]
+    DET = P[N - 1]
+    if (MOD(N, 2) == 1): 
+        pass
+    else : 
+        DET = -DET
+        for I in range(N): 
+            for J in range(N): 
+                IJ = I + J * N
+                ADJUG[IJ] = - ADJUG[IJ]
+    return (AINV, DET, ADJUG, P)
 #_______________________________________________________________________________
 #_______________________________________________________________________________
 def FOLD(LA, A, LB, B, LC, C):
