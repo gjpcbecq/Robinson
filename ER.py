@@ -675,33 +675,46 @@ def EUREKA(LR, R, G, F, A):
     if (LR == 1): 
         return (F, A)
     for L in range(1, LR): 
+        print("---------------")
+        print(("L", L))
         A[L] = - D / V
+#        if ((L + 1) != 2):
         if (L != 1):
+#            L1 = ((L + 1) - 2) / 2
             L1 = (L - 1) / 2
             L2 = L1 + 1
-            if (L2 >= 2): 
+            if (L2 >= 2):
                 for J in range(1, L2): 
                     HOLD = A[J]
-                    K = L - J - 1
+#                    K = (L + 1) - (J + 1) + 1 - 1
+                    K = L - J
                     A[J] += A[L] * A[K]
                     A[K] += A[L] * HOLD
-            if (2 * L1 != L - 4): 
-                A[L2 + 1] += A[L] * A[L2 + 1]
+                    print("<< J, L, K", J, L, K) 
+#            if (2 * L1 != (L + 1) - 2): 
+            if (2 * L1 != L - 1): 
+                print("even")
+#                A[(L2 + 1) - 1] += A[L] * A[(L2 + 1) - 1]
+                A[L2] += A[L] * A[L2]
+                print("L2, L, L2",L2, L, L2)
         V += A[L] * D
         F[L] = (G[L] - Q) / V
-        L3 = L
+#         L3 = (L + 1) - 1
+        L3 = L 
         for J in range(L3): 
+#             K = (L + 1) - (J + 1) + 1 - 1
             K = L - J
             F[J] += F[L] * A[K]
-            print(J, L, K)
-        print((LR, L, numpy.round(F, 2)))
+            print(("J, L, K", J, L, K))
+        print((LR, L, numpy.round(F, 4)))
         if (L == LR - 1): 
             return (F, A)
         D = 0.0
         Q = 0.0
         for I in range(L + 1):
+#            K = (L + 1) - (I + 1) + 2 - 1
             K = L - I + 1
-            print(I, K)
+            print(("I, K", I, K))
             D += A[I] * R[K]
             Q += F[I] * R[K] 
     return (F, A)
@@ -728,11 +741,11 @@ def INVTOP(LR, R, Q, SPACE):
     for K in range(LR): 
         print("K: {0}".format(K))
         SPACE = IMPULS(LR, SPACE, K)
-        print(numpy.round(SPACE, 2))
+        #print(numpy.round(SPACE, 2))
         J = LR * K
         (Q[J: J + LR], SPACE[LR: 2 * LR]) = EUREKA(LR, R, SPACE, 
             Q[J : J + LR], SPACE[LR: 2 * LR])
-        print(numpy.round(Q, 2))
+        #print(numpy.round(Q, 2))
     return (Q, SPACE)
 #_______________________________________________________________________________
 #_______________________________________________________________________________
@@ -751,6 +764,18 @@ def SHAPE(LB, B, LD, D, LA, A, LC, C, ASE, SPACE):
     ASE = (DD - AG) / DD
     C = FOLD(LA, A, LB, B, LC, C)
     return (A, LC, C, ASE, SPACE)
+#_______________________________________________________________________________
+#_______________________________________________________________________________
+def SPUR(N, A):
+    """
+    SPUR trac or spur of the diagonal elements of a matrix n x n
+    
+    p. 49
+    """
+    SP = 0.0
+    for I in range(N): 
+        SP += A[I, I]
+    return SP
 #_______________________________________________________________________________
 #_______________________________________________________________________________
 def QUADCO(L, N, R): 
@@ -1167,6 +1192,32 @@ def NORMEQ(N, M, LF, R, G):
         # end fo LI
     # end for L
     return (A, B, F, AP, BP, VA, VB, DA, DB, CA, CB, CF, GAM)
+#_______________________________________________________________________________
+#_______________________________________________________________________________
+def MAINV(N, A, B): 
+    """
+    Matrix Inversion
+    
+    p. 42
+    """
+    DET = 0
+    ADJUG = numpy.zeros(N * N)
+    P = numpy.zeros(N)
+    (B, DET, ADJUG, P) = FADDEJ(N, A, B, DET, ADJUG, P)
+    return B
+#_______________________________________________________________________________
+#_______________________________________________________________________________
+def MAINV_CPLX(N, A, B): 
+    """
+    Matrix Inversion for complex number
+    
+    p. 42
+    """
+    DET = 0
+    ADJUG = numpy.zeros(N * N)
+    P = numpy.zeros(N)
+    (B, DET, ADJUG, P) = FADDEJ_CPLX(N, A, B, DET, ADJUG, P)
+    return B
 #_______________________________________________________________________________
 #_______________________________________________________________________________
 def MAINE(N, A, B): 

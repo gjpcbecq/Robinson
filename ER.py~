@@ -435,13 +435,13 @@ def NORMAG(LX, X):
     return X
 #_______________________________________________________________________________
 #_______________________________________________________________________________
-def MACRO(N, LX, X, LY, Y, LG): 
+def MACRO(N, LX, X, LY, Y, LG, G): 
     """
     MACRO: empirical MultichAnnel CROss correlation 
 
     p. 203
     """
-    G = numpy.zeros((LG * N * N))
+    G = numpy.zeros((LG * N * N, ))
     for I in range(N): 
         I1 = I * LX
         for J in range(N): 
