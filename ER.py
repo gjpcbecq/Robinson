@@ -33,6 +33,7 @@ SQRT = numpy.sqrt
 ATAN = math.atan
 def SQRT(a): 
     return pow(a, 0.5)
+
 #_______________________________________________________________________________
 #_______________________________________________________________________________
 sunspot_X = numpy.array([
@@ -753,15 +754,33 @@ def SHAPE(LB, B, LD, D, LA, A, LC, C, ASE, SPACE):
     p. 75
     """
     SPACE = CROSS(LB, B, LB, B, LA, SPACE)
-    print(CROSS(LD, D, LB, B, LA, SPACE))
-    SPACE[LA:] = CROSS(LD, D, LB, B, LA, SPACE[LA:])
-    print(LA, SPACE, A)
-    (A, SPACE[2 * LA: ]) = EUREKA(LA, SPACE, SPACE[LA: ], A, SPACE[2 * LA: ])
+    SPACE[LA: ] = CROSS(LD, D, LB, B, LA, SPACE[LA:])
+    (A, SPACE[2 * LA: ]) = EUREKA(LA, SPACE, SPACE[LA: 2 * LA], A, 
+        SPACE[2 * LA: ])
     DD = DOT(LD, D, D)
     AG = DOT(LA, A, SPACE[LA: ])
     ASE = (DD - AG) / DD
     (LC, C) = FOLD(LA, A, LB, B, LC, C)
     return (A, LC, C, ASE, SPACE)
+#_______________________________________________________________________________
+#_______________________________________________________________________________
+def SPIKE(LB, B, LA, A, INDEX, ASE, S): 
+    """
+    SPIKE computes the spiking filter for the optimum spike position
+    
+    p. 79
+    """
+    LD = LA + LB - 1
+    for I in range(LD): 
+        S[LD: ] = IMPULS(LD, S[LD: ], I)
+        (A, LD, S[LD: 2 * LD], S[I], S[2 * LD: 2 * LD + 3 * LA]) = SHAPE(LB, 
+            B, LD, S[LD: ], LA, A, LD, S[LD: ], S[I], S[2 * LD: ])
+    (ASE, INDEX) = MINSN(LD, S, ASE, INDEX)
+    print(S)
+    S[LD: ] = IMPULS(LD, S[LD: ], INDEX)
+    (A, LD, S[LD: 2 * LD], ASE, S[2 * LD: 2 * LD + 3 * LA]) = SHAPE(LB, 
+        B, LD, S[LD: ], LA, A, LD, S[LD: ], ASE, S[2 * LD: ])
+    return (A, INDEX, ASE, S)
 #_______________________________________________________________________________
 #_______________________________________________________________________________
 def SPUR(N, A):

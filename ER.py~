@@ -390,14 +390,14 @@ def REVERS(LX, X):
     return X
 #_______________________________________________________________________________
 #_______________________________________________________________________________
-def CROSS(LX, X, LY, Y, LG):
+def CROSS(LX, X, LY, Y, LG, G):
     """
     CROSS: CROSS correlation
     
     p. 27
     
     """
-    G = numpy.zeros((LG, ))
+    #G = numpy.zeros((LG, ))
     for J in range(LG):
         # print(MIN0((LY, LX - J)))
         # N - J samples
@@ -447,7 +447,7 @@ def MACRO(N, LX, X, LY, Y, LG, G):
         for J in range(N): 
             J1 = J * LY
             IJ = LG * I + LG * N * J 
-            G[IJ:IJ+LG] = CROSS(LX, X[I1:], LY, Y[J1:], LG)
+            G[IJ:IJ+LG] = CROSS(LX, X[I1:], LY, Y[J1:], LG, G)
     return G
 #_______________________________________________________________________________
 #_______________________________________________________________________________
@@ -675,8 +675,8 @@ def EUREKA(LR, R, G, F, A):
     if (LR == 1): 
         return (F, A)
     for L in range(1, LR): 
-        print("---------------")
-        print(("L", L))
+#        print("---------------")
+#        print(("L", L))
         A[L] = - D / V
 #        if ((L + 1) != 2):
         if (L != 1):
@@ -690,13 +690,12 @@ def EUREKA(LR, R, G, F, A):
                     K = L - J
                     A[J] += A[L] * A[K]
                     A[K] += A[L] * HOLD
-                    print("<< J, L, K", J, L, K) 
+#                    print("<< J, L, K", J, L, K) 
 #            if (2 * L1 != (L + 1) - 2): 
             if (2 * L1 != L - 1): 
-                print("even")
 #                A[(L2 + 1) - 1] += A[L] * A[(L2 + 1) - 1]
                 A[L2] += A[L] * A[L2]
-                print("L2, L, L2",L2, L, L2)
+#                print("L2, L, L2",L2, L, L2)
         V += A[L] * D
         F[L] = (G[L] - Q) / V
 #         L3 = (L + 1) - 1
@@ -705,8 +704,8 @@ def EUREKA(LR, R, G, F, A):
 #             K = (L + 1) - (J + 1) + 1 - 1
             K = L - J
             F[J] += F[L] * A[K]
-            print(("J, L, K", J, L, K))
-        print((LR, L, numpy.round(F, 4)))
+#            print(("J, L, K", J, L, K))
+#        print((LR, L, numpy.round(F, 4)))
         if (L == LR - 1): 
             return (F, A)
         D = 0.0
@@ -714,7 +713,7 @@ def EUREKA(LR, R, G, F, A):
         for I in range(L + 1):
 #            K = (L + 1) - (I + 1) + 2 - 1
             K = L - I + 1
-            print(("I, K", I, K))
+#            print(("I, K", I, K))
             D += A[I] * R[K]
             Q += F[I] * R[K] 
     return (F, A)
@@ -739,13 +738,11 @@ def INVTOP(LR, R, Q, SPACE):
     p. 46
     """
     for K in range(LR): 
-        print("K: {0}".format(K))
+#        print("K: {0}".format(K))
         SPACE = IMPULS(LR, SPACE, K)
-        #print(numpy.round(SPACE, 2))
         J = LR * K
         (Q[J: J + LR], SPACE[LR: 2 * LR]) = EUREKA(LR, R, SPACE, 
-            Q[J : J + LR], SPACE[LR: 2 * LR])
-        #print(numpy.round(Q, 2))
+            Q[J: J + LR], SPACE[LR: 2 * LR])
     return (Q, SPACE)
 #_______________________________________________________________________________
 #_______________________________________________________________________________
@@ -756,13 +753,14 @@ def SHAPE(LB, B, LD, D, LA, A, LC, C, ASE, SPACE):
     p. 75
     """
     SPACE = CROSS(LB, B, LB, B, LA, SPACE)
-    SPACE[LA : LA + LA + 1] = CROSS(LD, D, LB, B, LA, SPACE)
-    SPACE[2 * LA + 1: ] = EUREKA(LA, SPACE, SPACE[LA:LA + LA + 1], A, 
-        SPACE[2 * LA + 1: ])
-    DD = DOT(LD, D, D, DD)
-    AG = DOT(LA, A, SPACE[LA: LA + 1], AG)
+    print(CROSS(LD, D, LB, B, LA, SPACE))
+    SPACE[LA:] = CROSS(LD, D, LB, B, LA, SPACE[LA:])
+    print(LA, SPACE, A)
+    (A, SPACE[2 * LA: ]) = EUREKA(LA, SPACE, SPACE[LA: ], A, SPACE[2 * LA: ])
+    DD = DOT(LD, D, D)
+    AG = DOT(LA, A, SPACE[LA: ])
     ASE = (DD - AG) / DD
-    C = FOLD(LA, A, LB, B, LC, C)
+    (LC, C) = FOLD(LA, A, LB, B, LC, C)
     return (A, LC, C, ASE, SPACE)
 #_______________________________________________________________________________
 #_______________________________________________________________________________
@@ -776,6 +774,53 @@ def SPUR(N, A):
     for I in range(N): 
         SP += A[I, I]
     return SP
+#_______________________________________________________________________________
+#_______________________________________________________________________________
+def MATRAN(M, N, MATRIX): 
+    """
+    Matrix transposition
+    
+    p. 52
+    """
+    K = M * N - 1
+    """
+    something about the right bits
+    this seems to enable to control if the element has already been changed so that it avoid to repeat the permutation again. 
+    I put another matrix filled with 1 to check even if I multiply the space by 2. 
+    
+    for I in range(1, K): 
+        MATRIX[I] = (MATRIX[I] / 2) * 2
+    for L in range(2, K): 
+        if (MATRIX(L) != (MATRIX[I] / 2) * 2): 
+            return 
+    """
+    CTRL = numpy.zeros(M * N)
+    CTRL[0] = 1
+    CTRL[-1] = 1
+    for L in range(1, K):
+        if CTRL[L] == 1: 
+            continue
+        KEEP = MATRIX[L]
+        IJ = L
+        cond = True
+        while cond: 
+#            JLESS1 = IJ // M
+#           J is JLESS1 in python or C
+            J = IJ // M
+            I = IJ - J * M
+#            J = JLESS1
+            JI = J + I * N
+#            print("L, IJ, I, J, JI", L, IJ, I, J, JI)
+            KATCH = MATRIX[JI]
+            MATRIX[JI] = KEEP
+#            print("KEEP, KATCH", KEEP, KATCH)
+            KEEP = KATCH
+#            print("MATRIX", MATRIX)
+            CTRL[IJ] = 1
+            IJ = JI
+            cond = (IJ != L)
+#            print(cond)
+    return MATRIX 
 #_______________________________________________________________________________
 #_______________________________________________________________________________
 def QUADCO(L, N, R): 
@@ -1305,15 +1350,17 @@ def TRIANG(N, TOP, S, SPACE):
     SPACE = ZERO(N, SPACE)
     S = ZERO(N * N, S)
     for I in range(N): 
+#        IP = (I + 1) + 1 - 1
         IP = I + 1
-        IM = I - 1
+#        IM = (I + 1) - 1, not an index just a counter
+        IM = I
         II = I + I * N
         S[II] = SQRT(TOP[II] - SPACE[I])
         if (I == N - 1): 
             break
         for K in range(IP, N): 
             E = 0.
-            if (IM == -1):
+            if (IM == 0):
                 pass
             else : 
                 for L in range(IM):
@@ -1342,14 +1389,14 @@ def TRIANG_CPLX(N, TOP, S, SPACE):
     S = ZERO(N * N, S)
     for I in range(N): 
         IP = I + 1
-        IM = I - 1
+        IM = I
         II = I + I * N
         S[II] = CSQRT(TOP[II] - SPACE[I])
         if (I == N - 1): 
             break
         for K in range(IP, N): 
             E = 0.
-            if (IM == -1):
+            if (IM == 0):
                 pass
             else : 
                 for L in range(IM):
@@ -1723,7 +1770,7 @@ def FOLD(LA, A, LB, B, LC, C):
         for J in range(LB): 
             K = I + J
             C[K] += A[I] * B[J] 
-    return (C, LC)
+    return (LC, C)
 #_______________________________________________________________________________
 #_______________________________________________________________________________
 def plotMacro(L, N, G): 
