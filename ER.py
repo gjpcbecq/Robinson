@@ -764,6 +764,55 @@ def SHAPE(LB, B, LD, D, LA, A, LC, C, ASE, SPACE):
     return (A, LC, C, ASE, SPACE)
 #_______________________________________________________________________________
 #_______________________________________________________________________________
+def SHAPER(LB, B, LD, D, LA, A, LC, C, INDEX, ERRORS, S):
+    """
+    SHAPER computes waveshaping filter 
+    
+    p. 83
+    """
+    print("LB", LB, "B", B, "LD", LD, "D", D, "LA", LA, "A", A, 
+        "LC", LC, "C", C, "INDEX", INDEX, "ERRORS", ERRORS, "S", S)
+    LC = LA + LB - 1
+    LCD = LC + LD - 1
+    DD = DOT(LD, D, D)
+    S = CROSS(LB, B, LB, B, LA, S)
+    for I in range(LCD): 
+        C = ZERO(LCD, C)
+#        LDI + 1 = LD - (I + 1) + 1
+        LDI = LD - I - 1
+#        if (I + 1 <= LD):
+        if (I <= LD - 1):
+            C = MOVE(I, D, LDI, C, 0)
+#        ILD + 1 = I + 1 - LD + 1
+        ILD = I - LD + 1
+#        if (I + 1 >= LD): 
+        if (I >= LD - 1): 
+            C = MOVE(LD, D, 0, C, ILD)
+        S[LA: ] = CROSS(LC, C, LB, B, LA, S[LA: ])
+#        if (I + 1 >= 2): 
+        if (I >= 1): 
+            A = SIDE(S[LA], LA, A, S[2 * LA: ], S)
+        else: 
+            (A, S[2 * LA: ]) = EUREKA(LA, S, S[LA:], A, S[2 * LA: ])
+        AG = DOT(LA, A, S[LA: ])
+        (LC, C[:LC]) = FOLD(LA, A, LB, B, LC, C)
+        ERRORS[I] = (DD - AG) / DD
+    (EMIN, INDEX) = MINSN(LCD, ERRORS, 0, INDEX)
+    C = ZERO(LCD, C)
+#    LDIND + 1 = LD - (INDEX + 1) + 1
+    LDIND = LD - INDEX - 1
+#    if (INDEX + 1 <= LD): 
+    if (INDEX <= LD - 1): 
+        C = MOVE(INDEX, D, LDIND, C, 0)
+#    INDLD + 1 = (INDEX + 1) - LD + 1
+    INDLD = INDEX - LD + 1
+#    if (INDEX + 1 >= LD): 
+    if (INDEX >= LD - 1): 
+        C = MOVE(LD, D, 0, C, INDLD)
+    (A, LC, C, EMIN, S) = SHAPE(LB, B, LC, C, LA, A, LC, C, EMIN, S)
+    return (A, LC, C, INDEX, ERRORS, S)
+#_______________________________________________________________________________
+#_______________________________________________________________________________
 def SPIKE(LB, B, LA, A, INDEX, ASE, S): 
     """
     SPIKE computes the spiking filter for the optimum spike position
@@ -771,16 +820,76 @@ def SPIKE(LB, B, LA, A, INDEX, ASE, S):
     p. 79
     """
     LD = LA + LB - 1
+    print(LD)
     for I in range(LD): 
         S[LD: ] = IMPULS(LD, S[LD: ], I)
-        (A, LD, S[LD: 2 * LD], S[I], S[2 * LD: 2 * LD + 3 * LA]) = SHAPE(LB, 
+        (A, LD, S[LD: 2 * LD], S[I], S[2 * LD: ]) = SHAPE(LB, 
             B, LD, S[LD: ], LA, A, LD, S[LD: ], S[I], S[2 * LD: ])
+#        print(I, S)
+#        print(A)
     (ASE, INDEX) = MINSN(LD, S, ASE, INDEX)
-    print(S)
+#    print(ASE, INDEX)
     S[LD: ] = IMPULS(LD, S[LD: ], INDEX)
-    (A, LD, S[LD: 2 * LD], ASE, S[2 * LD: 2 * LD + 3 * LA]) = SHAPE(LB, 
+#    print(S)
+    (A, LD, S[LD: 2 * LD], ASE, S[2 * LD: ]) = SHAPE(LB, 
         B, LD, S[LD: ], LA, A, LD, S[LD: ], ASE, S[2 * LD: ])
     return (A, INDEX, ASE, S)
+#_______________________________________________________________________________
+#_______________________________________________________________________________
+def SIDE(H, LF, F, A, R): 
+    """
+    SIDE Simpson sideways recursion 
+    
+    p. 80
+    """
+    V = R[0]
+    S = 0.0
+    T = 0.0
+#    print("A", A, "R", R)
+    if (LF != 1): 
+        for I in range(1, LF): 
+#            J + 1 = LF + 2 - (I + 1) 
+            J = LF - I
+            S += F[I - 1] * R[I]
+            T += A[J] * R[I]
+            V += A[I] * R[I]
+    FLF = F[LF - 1]
+    W = (H - S + FLF * T) / V
+    if (LF != 1): 
+        for I in range(1, LF):
+#            J + 1 = LF - (I + 1) + 2 
+            J = LF - I
+#            print("I", I, "J", J, "F", F, "W", W, "A", A, "FLF", FLF)
+            F[J] = F[J - 1] + W * A[J] - FLF * A[I]
+    F[0]= W 
+    return F
+#_______________________________________________________________________________
+#_______________________________________________________________________________
+def SPIKER(LB, B, LA, A, LC, C, INDEX, ERRORS, SPACE): 
+    """
+    SPIKER spiking filter with Simpson's sideways recursion
+    
+    p. 82
+    """
+#    print(LB, B, LA, A, LC, C, INDEX, ERRORS, SPACE)
+    LC = LA + LB - 1
+    SPACE = CROSS(LB, B, LB, B, LA, SPACE)
+    for I in range(LC): 
+        C = IMPULS(LC, C, I)
+        SPACE[LA: ] = CROSS(LC, C, LB, B, LA, SPACE[LA: ])
+#        if ((I + 1) >= 2)
+        if (I >= 1): 
+            A = SIDE(SPACE[LA], LA, A, SPACE[2 * LA: ], SPACE)
+        else: 
+            (A, SPACE[2 * LA: ]) = EUREKA(LA, SPACE, SPACE[LA: ], A, 
+                SPACE[2 * LA: ])
+        Q = DOT(LA, A, SPACE[LA:])
+        (LC, C) = FOLD(LA, A, LB, B, LC, C)
+        ERRORS[I] = 1. - Q
+    (EMIN, INDEX) = MINSN(LC, ERRORS, 0, 0)
+    C = IMPULS(LC, C, INDEX)
+    (A, LC, C, EMIN, SPACE) = SHAPE(LB, B, LC, C, LA, A, LC, C, EMIN, SPACE)
+    return (A, LC, C, INDEX, ERRORS)
 #_______________________________________________________________________________
 #_______________________________________________________________________________
 def SPUR(N, A):
@@ -1142,6 +1251,70 @@ def NORMEN(LX, X):
     return X
 #_______________________________________________________________________________
 #_______________________________________________________________________________
+def NLOGN(N, X, SIGN): 
+    """
+    NLOGN Fast Fourier transform method 
+    
+    p. 63
+    
+    """
+    NMAX = 25
+    M = numpy.empty(NMAX)
+    X = X.astype("complex")
+    LX = 2 ** N
+    for I in range(N): 
+        M[I] = 2 ** (N - I - 1)
+    for L in range(N): 
+        NBLOCK = 2 ** L
+        LBLOCK = LX // NBLOCK
+        LBHALF = LBLOCK // 2
+        print("LBLOCK", LBLOCK, "LBHALF", LBHALF)
+        K = 0
+        for IBLOCK in range(NBLOCK): 
+            FK = K 
+            FLX = LX
+            V = SIGN * PI * FK / FLX
+            WK = complex(COS(V), SIN(V))
+            print("FK", FK, "WK", WK)
+            ISTART = LBLOCK * IBLOCK
+            for I in range(LBHALF): 
+                J = ISTART + I
+                JH = J + LBHALF
+                print("J", J, "JH", JH, "X[JH]", X[JH])
+                Q = X[JH] * WK
+                X[JH] = X[J] - Q
+                X[J] = X[J] + Q
+            for I in range(1, N): 
+                II = I
+                if (K < M[I]): 
+                    break
+                else: 
+                    K -= M[I]
+            K += M[II]
+#       end IBLOCK
+#   end L
+    K = 0
+    for J in range(LX):
+        if (K >= J): 
+            HOLD = X[J]
+            X[J] = X[K]
+            X[K] = HOLD
+            print("K", K, "X", X)
+        for I in range(N): 
+            II = I
+            if (K < M[I]):
+                break
+            else: 
+                K -= M[I]
+        K += M[II]
+    # end J
+    if (SIGN < 0.0): 
+        return X
+    for I in range(LX): 
+        X[I] /= FLX
+    return X
+#_______________________________________________________________________________
+#_______________________________________________________________________________
 def NORM1(LX, X): 
     """
     NORM1 normalize an array by its first element
@@ -1336,7 +1509,7 @@ def MINSN(LX, X, XMIN, INDEX):
     """
     INDEX = 0
     for I in range(LX): 
-        if (X[INDEX] < X[I]): 
+        if (X[INDEX] > X[I]): 
             INDEX = I
         XMIN = X[INDEX]
     return (XMIN, INDEX)
@@ -1350,7 +1523,7 @@ def MAXSN(LX, X, XMAX, INDEX):
     """
     INDEX = 0
     for I in range(LX): 
-        if (X[INDEX] > X[I]): 
+        if (X[INDEX] < X[I]): 
             INDEX = I
         XMAX = X[INDEX]
     return (XMAX, INDEX)
