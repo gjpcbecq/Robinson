@@ -118,7 +118,7 @@ def compute_root(COF, ALPHA, N, SUMSQ, ROOTI, ROOTR, N2, X, Y):
 #_______________________________________________________________________________
 def AUGURY(N, LX, X, LR, R, SPIKE, FLOOR, LF, F, LY, Y, ERROR):
     """
-    AUGURY
+    AUGURY Multichannel Wiener prediction 
     
     p. 99
     """
@@ -1073,12 +1073,13 @@ def POLRT(XCOF, COF, M, ROOTR, ROOTI, IER):
         return (ROOTR, ROOTI, IER)
     NX = N
     NXX = N + 1
-    N2 = 0
+    N2 = 1
     KJ1 = N + 1
     ICT = 0
     SUMSQ = 0.
     ALPHA = 0.
     for L in range(KJ1): 
+#        (MT + 1) = KJ1 - (L + 1) + 1
         MT = KJ1 - L - 1
         COF[MT] = XCOF[L]
     while (N > 0): 
@@ -1268,19 +1269,19 @@ def NLOGN(N, X, SIGN):
         NBLOCK = 2 ** L
         LBLOCK = LX // NBLOCK
         LBHALF = LBLOCK // 2
-        print("LBLOCK", LBLOCK, "LBHALF", LBHALF)
+#        print("LBLOCK", LBLOCK, "LBHALF", LBHALF)
         K = 0
         for IBLOCK in range(NBLOCK): 
             FK = K 
             FLX = LX
-            V = SIGN * PI * FK / FLX
+            V = SIGN * 2 * PI * FK / FLX
             WK = complex(COS(V), SIN(V))
-            print("FK", FK, "WK", WK)
+#            print("FK", FK, "WK", WK)
             ISTART = LBLOCK * IBLOCK
             for I in range(LBHALF): 
                 J = ISTART + I
                 JH = J + LBHALF
-                print("J", J, "JH", JH, "X[JH]", X[JH])
+#                print("J", J, "JH", JH, "X[JH]", X[JH])
                 Q = X[JH] * WK
                 X[JH] = X[J] - Q
                 X[J] = X[J] + Q
@@ -1299,7 +1300,7 @@ def NLOGN(N, X, SIGN):
             HOLD = X[J]
             X[J] = X[K]
             X[K] = HOLD
-            print("K", K, "X", X)
+#            print("K", K, "X", X)
         for I in range(N): 
             II = I
             if (K < M[I]):
