@@ -42,46 +42,44 @@ sunspot_X = numpy.array([
 66, 62, 66, 197, 63, 0, 121, 0, 113, 27, 107, 50, 122, 127, 152, 216, 171, 70, 141, 69, 160, 92, 70, 46, 96, 78, 110, 79, 85, 113, 59, 86, 199, 53, 81, 81, 156, 27, 81, 107, 152, 99, 177, 48, 70, 158, 22, 43, 102, 111, 90, 86, 119, 82, 79, 111, 60, 118, 206, 122, 134, 131, 84, 100, 99, 99, 69, 67, 26, 106, 108, 155, 40, 75, 99, 86, 127, 201, 76, 64, 31, 138, 163, 98, 70, 155, 97, 82, 90, 122, 70, 96, 111, 42, 97, 91, 64, 81, 162, 137], dtype="float")
 #_______________________________________________________________________________
 #_______________________________________________________________________________
-def eval_pol_and_deriv(COF, X, NX, NXX, Y, SUMSQ, ALPHA, N):
+def eval_pol_and_deriv(COF, X, Y, SUMSQ, ALPHA, N):
     # evaluate polynomial and derivatives    
     UX = 0.0
     UY = 0.0
     V = 0.0
     YT = 0.0
     XT = 1.0
+    # U = COF[N + 1]
+    # print("N, COF[N]", N, COF[N])
     U = COF[N]
     if (U == 0): 
-        X = 0.0
-        NX -= 1
-        NXX -= 1
-        Y = 0.0
-        SUMSQ = 0.0
-        ALPHA = X
-        N -= 1
-        return (U, X, NX, NXX, Y, SUMSQ, ALPHA, N, 0, 0)
-    for I in range(N): 
-        L = N - I - 1
-        XT2 = X * XT - Y * YT
-        YT2 = X * YT + Y * XT
-        # print((X, Y, XT, YT, XT2, YT2, U, V, UX, UY))
-        U += COF[L] * XT2
-        V += COF[L] * YT2
-        FI = I
-        UX += FI * XT * COF[L]
-        UY -= FI * YT * COF[L]
-        XT = XT2
-        YT = YT2
-    SUMSQ = UX * UX + UY * UY
-    # print(SUMSQ)
-    if (SUMSQ != 0): 
-        DX = (V * UY - U * UX) / SUMSQ
-        X += DX
-        DY = -(U * UY + V * UX) / SUMSQ
-        Y += DY
-    else :
-        DX = 0.
-        DY = 0.        
-    return (U, X, NX, NXX, Y, SUMSQ, ALPHA, N, DX, DY)
+        print("U == 0")
+        return (U, X, Y, SUMSQ, ALPHA, N, 0, 0)
+    else : 
+        for I in range(N): 
+            # (L + 1) = N - (I + 1) + 1
+            L = N - I - 1
+            XT2 = X * XT - Y * YT
+            YT2 = X * YT + Y * XT
+            # print((X, Y, XT, YT, XT2, YT2, U, V, UX, UY))
+            U += COF[L] * XT2
+            V += COF[L] * YT2
+            FI = I
+            UX += FI * XT * COF[L]
+            UY -= FI * YT * COF[L]
+            XT = XT2
+            YT = YT2
+        SUMSQ = UX * UX + UY * UY
+        # print(SUMSQ)
+        if (SUMSQ != 0): 
+            DX = (V * UY - U * UX) / SUMSQ
+            X += DX
+            DY = -(U * UY + V * UX) / SUMSQ
+            Y += DY
+        else :
+            DX = 0.
+            DY = 0.
+    return (U, X, Y, SUMSQ, ALPHA, N, DX, DY)
     
 def increment_initial_values(XO, YO, ICT, IN): 
     """
@@ -96,22 +94,36 @@ def increment_initial_values(XO, YO, ICT, IN):
     ICT = 0
     IN += 1
     return (XO, YO, X, Y, ICT, IN)
-    
+
+def check_root(X, Y, N): 
+    if (abs(Y / X) >= 1e-4): 
+        ALPHA = X + X
+        SUMSQ = X * X + Y * Y
+        N -= 2
+        print("2 roots N -= 2")
+    else:   
+        Y = 0.0
+        SUMSQ = 0.0
+        ALPHA = X
+        N -= 1
+        print("1 root N -= 1")
+    return (X, Y, N, SUMSQ, ALPHA)
+
 def compute_root(COF, ALPHA, N, SUMSQ, ROOTI, ROOTR, N2, X, Y): 
     # 140
     COF[1] += ALPHA * COF[0]
     for L in range(1, N): 
         COF[L + 1] += ALPHA * COF[L] - SUMSQ * COF[L - 1]
-    print(N2, X, Y)
     ROOTI[N2] = Y
     ROOTR[N2] = X
     N2 += 1
     if (SUMSQ != 0):
         Y = -Y
-        SUMSQ = 0.0
+        # SUMSQ = 0.0
         ROOTI[N2] = Y
         ROOTR[N2] = X
         N2 += 1
+    print("N2", N2)
     return (COF, ROOTI, ROOTR, N2)
     
 #_______________________________________________________________________________
@@ -1053,50 +1065,46 @@ def POLRT(XCOF, COF, M, ROOTR, ROOTI, IER):
     
     not working yet
     """
-    flagDoubleRoot = 0 
     ROOTR = numpy.zeros((M, ))
     ROOTI = numpy.zeros((M, ))
     IFIT = 0
     N = M 
     IER = 0
     if (XCOF[N] == 0):
-# set error code to 4
+    # set error code to 4
         IER = 4
         return (ROOTR, ROOTI, IER)
     if (N <= 0): 
-# set error code to 1
+    # set error code to 1
         IER = 1
         return (ROOTR, ROOTI, IER)
     if (N > 36): 
-# set error code to 2
+    # set error code to 2
         IER = 2
         return (ROOTR, ROOTI, IER)
     NX = N
     NXX = N + 1
-    N2 = 1
+    N2 = 0
     KJ1 = N + 1
     ICT = 0
     SUMSQ = 0.
     ALPHA = 0.
     for L in range(KJ1): 
-#        (MT + 1) = KJ1 - (L + 1) + 1
+        # (MT + 1) = KJ1 - (L + 1) + 1
         MT = KJ1 - L - 1
         COF[MT] = XCOF[L]
-    while (N > 0): 
-        print((N, COF))
+    print("XCOF, COF", XCOF, COF)
     # set initial values
-        XO = .00500101
-        YO = 0.01000101
+    XO = .00500101
+    YO = 0.01000101
     # zero initial value counter
-        IN = 0
-        (XO, YO, X, Y, ICT, IN) = increment_initial_values(XO, YO, ICT, IN)
-    # evaluate polynomial and derivatives    
-        UX = 0.0
-        UY = 0.0
-        V = 0.0
-        YT = 0.0
-        XT = 1.0
-        U = COF[N]
+    IN = 0
+    (XO, YO, X, Y, ICT, IN) = increment_initial_values(XO, YO, ICT, IN)
+    while (N > -1): 
+    #    print((N, X, Y))
+    # evaluate polynomial and derivatives 
+        (U, X, Y, SUMSQ, ALPHA, N, DX, DY) = eval_pol_and_deriv(COF, 
+            X, Y, SUMSQ, ALPHA, N)
         if (U == 0): 
             X = 0.0
             NX -= 1
@@ -1105,102 +1113,89 @@ def POLRT(XCOF, COF, M, ROOTR, ROOTI, IER):
             SUMSQ = 0.0
             ALPHA = X
             N -= 1
-            X = 0.0
-            NX -= 1
-            NXX -= 1
-            Y = 0.0
-            SUMSQ = 0.0
-            ALPHA = X
-            N -= 1
-            (COF, ROOTI, ROOTR, N2) = compute_root(COF, ALPHA, N, SUMSQ, ROOTI, ROOTR, N2, X, Y)
+            print("U=0 N -= 1") 
+            (COF, ROOTI, ROOTR, N2) = compute_root(COF, ALPHA, N, SUMSQ, 
+                ROOTI, ROOTR, N2, X, Y)
+            # set initial values
+            XO = .00500101
+            YO = 0.01000101
+            # zero initial value counter
+            IN = 0
+            (XO, YO, X, Y, ICT, IN) = increment_initial_values(XO, YO, ICT, IN)
         else: 
-            for I in range(N): 
-                L = N - I - 1
-                XT2 = X * XT - Y * YT
-                YT2 = X * YT + Y * XT
-                # print((X, Y, XT, YT, XT2, YT2, U, V, UX, UY))
-                U += COF[L] * XT2
-                V += COF[L] * YT2
-                FI = I
-                UX += FI * XT * COF[L]
-                UY -= FI * YT * COF[L]
-                XT = XT2
-                YT = YT2
-            SUMSQ = UX * UX + UY * UY
-            # print(SUMSQ)
-            if (SUMSQ != 0): 
-                DX = (V * UY - U * UX) / SUMSQ
-                X += DX
-                DY = -(U * UY + V * UX) / SUMSQ
-                Y += DY
-            else :
-                DX = 0.
-                DY = 0.                    
-    while (ABS(DY) + ABS(DX) > 1e-5): 
-            # step iteration counter
-            ICT += 1
-            # print(ABS(DY) + ABS(DX))
-            if (ICT < 500): 
-                (U, X, NX, NXX, Y, SUMSQ, ALPHA, N, DX, DY) = eval_pol_and_deriv(COF, X, NX, NXX, Y, SUMSQ, ALPHA, N)
-            else : 
-                if (IN < 5): 
+            if (SUMSQ == 0):
+                if (IFIT == 0): 
                     (XO, YO, X, Y, ICT, IN) = increment_initial_values(XO, YO, ICT, IN)
-                    (U, X, NX, NXX, Y, SUMSQ, ALPHA, N, DX, DY) = eval_pol_and_deriv(COF, X, NX, NXX, Y, SUMSQ, ALPHA, N)
-                else: 
-                    IER = 3
-                    return (ROOTR, ROOTI, IER)
-        if (U != 0): 
-            for L in range(NXX):
-                MT = KJ1 - L - 1
-                TEMP = XCOF[MT]
-                XCOF[MT] = COF[L]
-                COF[L] = TEMP
-            ITEMP = N
-            N = NX
-            NX = ITEMP
-            if (IFIT == 0): 
-                IFIT = 1
-                XPR = X
-                YPR = Y
-                (U, X, NX, NXX, Y, SUMSQ, ALPHA, N, DX, DY) = eval_pol_and_deriv(COF, X, NX, NXX, Y, SUMSQ, ALPHA, N)
-                flagConv = 1
-                while (ABS(DY) + ABS(DX) > 1e-5): 
+                else : 
+                    X = XPR
+                    Y = YPR
+                    IFIT = 0
+                    (X, Y, N, SUMSQ, ALPHA) = check_root(X, Y, N)
+                    (COF, ROOTI, ROOTR, N2) = compute_root(COF, ALPHA, N, 
+                        SUMSQ, ROOTI, ROOTR, N2, X, Y)
+                    # set initial values
+                    XO = .00500101
+                    YO = 0.01000101
+                    # zero initial value counter
+                    IN = 0
+                    (XO, YO, X, Y, ICT, IN) = increment_initial_values(XO, YO, ICT, IN)
+            else: 
+                if (ABS(DY) + ABS(DX) >= 1e-5):
                     # step iteration counter
                     ICT += 1
+                    # print(ABS(DY) + ABS(DX))
                     if (ICT < 500): 
-                        (U, X, NX, NXX, Y, SUMSQ, ALPHA, N, DX, DY) = eval_pol_and_deriv(COF, X, NX, NXX, Y, SUMSQ, ALPHA, N)
-                    else: 
-                        DX = 0
-                        DY = 0
-                        flagConv = 0
-                if (flagConv == 1): 
+                        pass                        
+                    else : 
+                        print("ICT >= 500")
+                        if (IFIT == 0): 
+                            if (IN < 5): 
+                                (XO, YO, X, Y, ICT, IN) = increment_initial_values(XO, YO, ICT, IN)
+                            else: 
+                                IER = 3
+                                return (ROOTR, ROOTI, IER)
+                        else :
+                            X = XPR
+                            Y = YPR
+                            IFIT = 0
+                            (X, Y, N, SUMSQ, ALPHA) = check_root(
+                                X, Y, N)
+                            (COF, ROOTI, ROOTR, N2) = compute_root(COF, ALPHA, 
+                                N, SUMSQ, ROOTI, ROOTR, N2, X, Y)
+                            # set initial values
+                            XO = .00500101
+                            YO = 0.01000101
+                            # zero initial value counter
+                            IN = 0
+                            (XO, YO, X, Y, ICT, IN) = increment_initial_values(XO, YO, ICT, IN)
+                else: # (ABS(DY) + ABS(DX) < 1e-5) 
+                    print("DX+DY < 1e-5")
                     for L in range(NXX):
+                        # (MT + 1) = KJ1 - (L + 1) + 1
                         MT = KJ1 - L - 1
                         TEMP = XCOF[MT]
                         XCOF[MT] = COF[L]
                         COF[L] = TEMP
-                    print(ITEMP, N, NX)
                     ITEMP = N
                     N = NX
                     NX = ITEMP
-                else : 
-                    X = XPR
-                    Y = YPR
-                    flagConv = 0
-            IFIT = 0
-            if (abs(Y / X) >= 1e-4): 
-                ALPHA = X + X
-                SUMSQ = X * X + Y * Y
-                N -= 2
-                flagDoubleRoot = 1
-            else: #(flagDoubleRoot == 0):  
-                Y = 0.0
-                SUMSQ = 0.0
-                ALPHA = X
-                N -= 1
-                flagDoubleRoot = 0
-        (COF, ROOTI, ROOTR, N2) = compute_root(COF, ALPHA, N, SUMSQ, ROOTI, ROOTR, N2, X, Y)
-        print(N, COF)
+                    if (IFIT == 0): 
+                        IFIT = 1
+                        XPR = X
+                        YPR = Y
+                    else : 
+                        IFIT = 0
+                        (X, Y, N, SUMSQ, ALPHA) = check_root(
+                            X, Y, N)
+                        (COF, ROOTI, ROOTR, N2) = compute_root(COF, ALPHA, 
+                            N, SUMSQ, ROOTI, ROOTR, N2, X, Y)
+                        # set initial values
+                        XO = .00500101
+                        YO = 0.01000101
+                        # zero initial value counter
+                        IN = 0
+                        (XO, YO, X, Y, ICT, IN) = increment_initial_values(
+                            XO, YO, ICT, IN)
     # end while (N > 0)
     return (ROOTR, ROOTI, IER)
 #_______________________________________________________________________________

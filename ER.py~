@@ -118,7 +118,7 @@ def compute_root(COF, ALPHA, N, SUMSQ, ROOTI, ROOTR, N2, X, Y):
 #_______________________________________________________________________________
 def AUGURY(N, LX, X, LR, R, SPIKE, FLOOR, LF, F, LY, Y, ERROR):
     """
-    AUGURY
+    AUGURY Multichannel Wiener prediction 
     
     p. 99
     """
@@ -1073,12 +1073,13 @@ def POLRT(XCOF, COF, M, ROOTR, ROOTI, IER):
         return (ROOTR, ROOTI, IER)
     NX = N
     NXX = N + 1
-    N2 = 0
+    N2 = 1
     KJ1 = N + 1
     ICT = 0
     SUMSQ = 0.
     ALPHA = 0.
     for L in range(KJ1): 
+#        (MT + 1) = KJ1 - (L + 1) + 1
         MT = KJ1 - L - 1
         COF[MT] = XCOF[L]
     while (N > 0): 
@@ -1089,21 +1090,65 @@ def POLRT(XCOF, COF, M, ROOTR, ROOTI, IER):
     # zero initial value counter
         IN = 0
         (XO, YO, X, Y, ICT, IN) = increment_initial_values(XO, YO, ICT, IN)
-        (U, X, NX, NXX, Y, SUMSQ, ALPHA, N, DX, DY) = eval_pol_and_deriv(
-            COF, X, NX, NXX, Y, SUMSQ, ALPHA, N)
-        while (ABS(DY) + ABS(DX) > 1e-5): 
-            # step iteration counter
-            ICT += 1
-            # print(ABS(DY) + ABS(DX))
-            if (ICT < 500): 
+    # evaluate polynomial and derivatives    
+        UX = 0.0
+        UY = 0.0
+        V = 0.0
+        YT = 0.0
+        XT = 1.0
+        U = COF[N]
+        if (U == 0): 
+            X = 0.0
+            NX -= 1
+            NXX -= 1
+            Y = 0.0
+            SUMSQ = 0.0
+            ALPHA = X
+            N -= 1
+            X = 0.0
+            NX -= 1
+            NXX -= 1
+            Y = 0.0
+            SUMSQ = 0.0
+            ALPHA = X
+            N -= 1
+            (COF, ROOTI, ROOTR, N2) = compute_root(COF, ALPHA, N, SUMSQ, ROOTI, ROOTR, N2, X, Y)
+        else: 
+            for I in range(N): 
+                L = N - I - 1
+                XT2 = X * XT - Y * YT
+                YT2 = X * YT + Y * XT
+                # print((X, Y, XT, YT, XT2, YT2, U, V, UX, UY))
+                U += COF[L] * XT2
+                V += COF[L] * YT2
+                FI = I
+                UX += FI * XT * COF[L]
+                UY -= FI * YT * COF[L]
+                XT = XT2
+                YT = YT2
+            SUMSQ = UX * UX + UY * UY
+            # print(SUMSQ)
+            if (SUMSQ != 0): 
+                DX = (V * UY - U * UX) / SUMSQ
+                X += DX
+                DY = -(U * UY + V * UX) / SUMSQ
+                Y += DY
+            else :
+                DX = 0.
+                DY = 0.                    
+    while (ABS(DY) + ABS(DX) > 1e-5): 
+        # step iteration counter
+        ICT += 1
+        # print(ABS(DY) + ABS(DX))
+        if (ICT < 500): 
+            (U, X, NX, NXX, Y, SUMSQ, ALPHA, N, DX, DY) = eval_pol_and_deriv(COF, X, NX, NXX, Y, SUMSQ, ALPHA, N)
+        else : 
+            if (IN < 5): 
+                (XO, YO, X, Y, ICT, IN) = increment_initial_values(XO, YO, ICT, IN)
                 (U, X, NX, NXX, Y, SUMSQ, ALPHA, N, DX, DY) = eval_pol_and_deriv(COF, X, NX, NXX, Y, SUMSQ, ALPHA, N)
-            else : 
-                if (IN < 5): 
-                    (XO, YO, X, Y, ICT, IN) = increment_initial_values(XO, YO, ICT, IN)
-                    (U, X, NX, NXX, Y, SUMSQ, ALPHA, N, DX, DY) = eval_pol_and_deriv(COF, X, NX, NXX, Y, SUMSQ, ALPHA, N)
-                else: 
-                    IER = 3
-                    return (ROOTR, ROOTI, IER)
+            else: 
+                IER = 3
+                return (ROOTR, ROOTI, IER)
         if (U != 0): 
             for L in range(NXX):
                 MT = KJ1 - L - 1
@@ -1268,19 +1313,19 @@ def NLOGN(N, X, SIGN):
         NBLOCK = 2 ** L
         LBLOCK = LX // NBLOCK
         LBHALF = LBLOCK // 2
-        print("LBLOCK", LBLOCK, "LBHALF", LBHALF)
+#        print("LBLOCK", LBLOCK, "LBHALF", LBHALF)
         K = 0
         for IBLOCK in range(NBLOCK): 
             FK = K 
             FLX = LX
-            V = SIGN * PI * FK / FLX
+            V = SIGN * 2 * PI * FK / FLX
             WK = complex(COS(V), SIN(V))
-            print("FK", FK, "WK", WK)
+#            print("FK", FK, "WK", WK)
             ISTART = LBLOCK * IBLOCK
             for I in range(LBHALF): 
                 J = ISTART + I
                 JH = J + LBHALF
-                print("J", J, "JH", JH, "X[JH]", X[JH])
+#                print("J", J, "JH", JH, "X[JH]", X[JH])
                 Q = X[JH] * WK
                 X[JH] = X[J] - Q
                 X[J] = X[J] + Q
@@ -1299,7 +1344,7 @@ def NLOGN(N, X, SIGN):
             HOLD = X[J]
             X[J] = X[K]
             X[K] = HOLD
-            print("K", K, "X", X)
+#            print("K", K, "X", X)
         for I in range(N): 
             II = I
             if (K < M[I]):
