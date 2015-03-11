@@ -42,93 +42,6 @@ sunspot_X = numpy.array([
 66, 62, 66, 197, 63, 0, 121, 0, 113, 27, 107, 50, 122, 127, 152, 216, 171, 70, 141, 69, 160, 92, 70, 46, 96, 78, 110, 79, 85, 113, 59, 86, 199, 53, 81, 81, 156, 27, 81, 107, 152, 99, 177, 48, 70, 158, 22, 43, 102, 111, 90, 86, 119, 82, 79, 111, 60, 118, 206, 122, 134, 131, 84, 100, 99, 99, 69, 67, 26, 106, 108, 155, 40, 75, 99, 86, 127, 201, 76, 64, 31, 138, 163, 98, 70, 155, 97, 82, 90, 122, 70, 96, 111, 42, 97, 91, 64, 81, 162, 137], dtype="float")
 #_______________________________________________________________________________
 #_______________________________________________________________________________
-def eval_pol_and_deriv(COF, X, Y, SUMSQ, N):
-    # evaluate polynomial and derivatives    
-    UX = 0.0
-    UY = 0.0
-    V = 0.0
-    YT = 0.0
-    XT = 1.0
-    # U = COF[N + 1]
-    # print("N, COF[N]", N, COF[N])
-    U = COF[N]
-    if (U == 0): 
-        print("U == 0")
-        return (U, X, Y, SUMSQ, N, 0, 0)
-    else : 
-        for I in range(N): 
-            # (L + 1) = N - (I + 1) + 1
-            L = N - I - 1
-            XT2 = X * XT - Y * YT
-            YT2 = X * YT + Y * XT
-            # print((X, Y, XT, YT, XT2, YT2, U, V, UX, UY))
-            U += COF[L] * XT2
-            V += COF[L] * YT2
-            FI = (I + 1)
-            UX += FI * XT * COF[L]
-            UY -= FI * YT * COF[L]
-            XT = XT2
-            YT = YT2
-        SUMSQ = UX * UX + UY * UY
-        # print(SUMSQ)
-        if (SUMSQ != 0): 
-            DX = (V * UY - U * UX) / SUMSQ
-            X += DX
-            DY = -(U * UY + V * UX) / SUMSQ
-            Y += DY
-        else :
-            DX = 0.
-            DY = 0.
-        print(X, Y)
-    return (U, X, Y, SUMSQ, N, DX, DY)
-    
-def increment_initial_values(XO, YO, ICT, IN): 
-    """
-    """
-    X = XO
-# increment initial values and counter
-    XO = -10.0 * YO
-    YO = -10.0 * X
-# set X and Y to current value
-    X = XO
-    Y = YO
-    ICT = 0
-    IN += 1
-    return (XO, YO, X, Y, ICT, IN)
-
-def check_root(X, Y, N): 
-    if (abs(Y / X) >= 1e-4): 
-        ALPHA = X + X
-        SUMSQ = X * X + Y * Y
-        N -= 2
-        print("2 roots N -= 2")
-    else:   
-        Y = 0.0
-        SUMSQ = 0.0
-        ALPHA = X
-        N -= 1
-        print("1 root N -= 1")
-    return (X, Y, N, SUMSQ, ALPHA)
-
-def compute_root(COF, ALPHA, N, SUMSQ, ROOTI, ROOTR, N2, X, Y): 
-    # 140
-    COF[1] += ALPHA * COF[0]
-    for L in range(1, N): 
-        COF[L + 1] += ALPHA * COF[L] - SUMSQ * COF[L - 1]
-    ROOTI[N2] = Y
-    ROOTR[N2] = X
-    N2 += 1
-    if (SUMSQ != 0):
-        Y = -Y
-        # SUMSQ = 0.0
-        ROOTI[N2] = Y
-        ROOTR[N2] = X
-        N2 += 1
-    print("N2", N2)
-    return (COF, ROOTI, ROOTR, N2)
-    
-#_______________________________________________________________________________
-#_______________________________________________________________________________
 def AUGURY(N, LX, X, LR, R, SPIKE, FLOOR, LF, F, LY, Y, ERROR):
     """
     AUGURY Multichannel Wiener prediction 
@@ -415,6 +328,7 @@ def CROSS(LX, X, LY, Y, LG, G):
     for J in range(LG):
         # print(MIN0((LY, LX - J)))
         # N - J samples
+        # MIN0((LY, LX - (J + 1) + 1))
         G[J] = DOT(MIN0((LY, LX - J)), X[J:], Y)
     return G
 #_______________________________________________________________________________
@@ -461,7 +375,7 @@ def MACRO(N, LX, X, LY, Y, LG, G):
         for J in range(N): 
             J1 = J * LY
             IJ = LG * I + LG * N * J 
-            G[IJ:IJ+LG] = CROSS(LX, X[I1:], LY, Y[J1:], LG, G)
+            G[IJ:IJ+LG] = CROSS(LX, X[I1:], LY, Y[J1:], LG, G[IJ:IJ+LG])
     return G
 #_______________________________________________________________________________
 #_______________________________________________________________________________
@@ -1064,25 +978,28 @@ def POLRT(XCOF, COF, M, ROOTR, ROOTI, IER):
     
     p. 35
     
-    not working yet
     """
     ROOTR = numpy.zeros((M, ))
     ROOTI = numpy.zeros((M, ))
+    XO = 0
+    YO = 0
+    IN = 0
+    TEMP = 0.0
     IFIT = 0
     N = M 
     IER = 0
     if (XCOF[N] == 0):
-    # set error code to 4
+        # set error code to 4
         IER = 4
-        return (ROOTR, ROOTI, IER)
+        return (COF, ROOTR, ROOTI, IER)
     if (N <= 0): 
-    # set error code to 1
+        # set error code to 1
         IER = 1
-        return (ROOTR, ROOTI, IER)
+        return (COF, ROOTR, ROOTI, IER)
     if (N > 36): 
-    # set error code to 2
+        # set error code to 2
         IER = 2
-        return (ROOTR, ROOTI, IER)
+        return (COF, ROOTR, ROOTI, IER)
     NX = N
     NXX = N + 1
     N2 = 0
@@ -1094,18 +1011,15 @@ def POLRT(XCOF, COF, M, ROOTR, ROOTI, IER):
         # (MT + 1) = KJ1 - (L + 1) + 1
         MT = KJ1 - L - 1
         COF[MT] = XCOF[L]
-    print("XCOF, COF", XCOF, COF)
-    # set initial values
-    XO = .00500101
-    YO = 0.01000101
-    # zero initial value counter
-    IN = 0
-    (XO, YO, X, Y, ICT, IN) = increment_initial_values(XO, YO, ICT, IN)
+    # print("XCOF, COF", XCOF, COF)
+    (XO, YO, IN) = POLRT_set_initial_values(XO, YO, IN)
+    (XO, YO, X, Y, ICT, IN) = POLRT_increment_initial_values(XO, YO, ICT, IN)
     while (N > 0): 
-    #    print((N, X, Y))
-    # evaluate polynomial and derivatives 
-        (U, X, Y, SUMSQ, N, DX, DY) = eval_pol_and_deriv(COF, X, Y, SUMSQ, N)
-        if (U == 0): 
+        # print((N, X, Y))
+        # evaluate polynomial and derivatives 
+        (flag, X, Y, SUMSQ, N, DX, DY) = POLRT_eval_pol_and_deriv(COF, X, Y, SUMSQ, N)
+        # print(flag)
+        if (flag == 0): 
             X = 0.0
             NX -= 1
             NXX -= 1
@@ -1113,32 +1027,23 @@ def POLRT(XCOF, COF, M, ROOTR, ROOTI, IER):
             SUMSQ = 0.0
             ALPHA = X
             N -= 1
-            print("U=0 N -= 1") 
-            (COF, ROOTI, ROOTR, N2) = compute_root(COF, ALPHA, N, SUMSQ, 
+            (COF, ROOTI, ROOTR, N2) = POLRT_compute_root(COF, ALPHA, N, SUMSQ, 
                 ROOTI, ROOTR, N2, X, Y)
-            # set initial values
-            XO = .00500101
-            YO = 0.01000101
-            # zero initial value counter
-            IN = 0
-            (XO, YO, X, Y, ICT, IN) = increment_initial_values(XO, YO, ICT, IN)
+            (XO, YO, IN) = POLRT_set_initial_values(XO, YO, IN)
+            (XO, YO, X, Y, ICT, IN) = POLRT_increment_initial_values(XO, YO, ICT, IN)
         else: 
             if (SUMSQ == 0):
                 if (IFIT == 0): 
-                    (XO, YO, X, Y, ICT, IN) = increment_initial_values(XO, YO, ICT, IN)
+                    (XO, YO, X, Y, ICT, IN) = POLRT_increment_initial_values(XO, YO, ICT, IN)
                 else : 
                     X = XPR
                     Y = YPR
                     IFIT = 0
-                    (X, Y, N, SUMSQ, ALPHA) = check_root(X, Y, N)
-                    (COF, ROOTI, ROOTR, N2) = compute_root(COF, ALPHA, N, 
+                    (X, Y, N, SUMSQ, ALPHA) = POLRT_check_root(X, Y, N)
+                    (COF, ROOTI, ROOTR, N2) = POLRT_compute_root(COF, ALPHA, N, 
                         SUMSQ, ROOTI, ROOTR, N2, X, Y)
-                    # set initial values
-                    XO = .00500101
-                    YO = 0.01000101
-                    # zero initial value counter
-                    IN = 0
-                    (XO, YO, X, Y, ICT, IN) = increment_initial_values(XO, YO, ICT, IN)
+                    (XO, YO, IN) = POLRT_set_initial_values(XO, YO, IN)
+                    (XO, YO, X, Y, ICT, IN) = POLRT_increment_initial_values(XO, YO, ICT, IN)
             else: 
                 if (ABS(DY) + ABS(DX) >= 1e-5):
                     # step iteration counter
@@ -1153,32 +1058,30 @@ def POLRT(XCOF, COF, M, ROOTR, ROOTI, IER):
                         print("ICT >= 500")
                         if (IFIT == 0): 
                             if (IN < 5): 
-                                (XO, YO, X, Y, ICT, IN) = increment_initial_values(XO, YO, ICT, IN)
+                                (XO, YO, X, Y, ICT, IN) = POLRT_increment_initial_values(XO, YO, ICT, IN)
                             else: 
                                 IER = 3
-                                return (ROOTR, ROOTI, IER)
+                                return (COF, ROOTR, ROOTI, IER)
                         else :
                             X = XPR
                             Y = YPR
                             IFIT = 0
-                            (X, Y, N, SUMSQ, ALPHA) = check_root(
-                                X, Y, N)
-                            (COF, ROOTI, ROOTR, N2) = compute_root(COF, ALPHA, 
-                                N, SUMSQ, ROOTI, ROOTR, N2, X, Y)
-                            # set initial values
-                            XO = .00500101
-                            YO = 0.01000101
-                            # zero initial value counter
-                            IN = 0
-                            (XO, YO, X, Y, ICT, IN) = increment_initial_values(XO, YO, ICT, IN)
-                else: # (ABS(DY) + ABS(DX) < 1e-5) 
-                    print("DX+DY < 1e-5")
+                            (X, Y, N, SUMSQ, ALPHA) = POLRT_check_root(X, Y, N)
+                            (COF, ROOTI, ROOTR, N2) = POLRT_compute_root(COF, ALPHA, N, SUMSQ, ROOTI, ROOTR, N2, X, Y)
+                            (XO, YO, IN) = POLRT_set_initial_values(XO, YO, IN)
+                            (XO, YO, X, Y, ICT, IN) = POLRT_increment_initial_values(XO, YO, ICT, IN)
+                else: 
+                    # (ABS(DY) + ABS(DX) < 1e-5) 
+                    # print("DX+DY < 1e-5... zero found")
+                    # print("COF, XCOF: ", COF, XCOF)
                     for L in range(NXX):
                         # (MT + 1) = KJ1 - (L + 1) + 1
                         MT = KJ1 - L - 1
+                        # print("L, MT: ", L, MT)
                         TEMP = XCOF[MT]
                         XCOF[MT] = COF[L]
                         COF[L] = TEMP
+                    # print("COF, XCOF: ", COF, XCOF)
                     ITEMP = N
                     N = NX
                     NX = ITEMP
@@ -1188,21 +1091,123 @@ def POLRT(XCOF, COF, M, ROOTR, ROOTI, IER):
                         YPR = Y
                     else : 
                         IFIT = 0
-                        (X, Y, N, SUMSQ, ALPHA) = check_root(
-                            X, Y, N)
-                        (COF, ROOTI, ROOTR, N2) = compute_root(COF, ALPHA, 
+                        (X, Y, N, SUMSQ, ALPHA) = POLRT_check_root(X, Y, N)
+                        (COF, ROOTI, ROOTR, N2) = POLRT_compute_root(COF, ALPHA, 
                             N, SUMSQ, ROOTI, ROOTR, N2, X, Y)
-                        # set initial values
-                        XO = .00500101
-                        YO = 0.01000101
-                        # zero initial value counter
-                        IN = 0
-                        (XO, YO, X, Y, ICT, IN) = increment_initial_values(
-                            XO, YO, ICT, IN)
+                        (XO, YO, IN) = POLRT_set_initial_values(XO, YO, IN)
+                        (XO, YO, X, Y, ICT, IN) = POLRT_increment_initial_values(XO, YO, ICT, IN)
     # end while (N > 0)
-    return (ROOTR, ROOTI, IER)
+    return (COF, ROOTR, ROOTI, IER)
 #_______________________________________________________________________________
-
+#_______________________________________________________________________________
+def POLRT_set_initial_values(XO, YO, IN):
+    """
+    (XO, YO, IN) = POLRT_set_initial_values(XO, YO, IN)
+    """
+    # set initial values
+    XO = .00500101
+    YO = 0.01000101
+    # zero initial value counter
+    IN = 0
+    return (XO, YO, IN)
+#_______________________________________________________________________________
+#_______________________________________________________________________________
+def POLRT_eval_pol_and_deriv(COF, X, Y, SUMSQ, N):
+    # evaluate polynomial and derivatives    
+    UX = 0.0
+    UY = 0.0
+    V = 0.0
+    YT = 0.0
+    XT = 1.0
+    # U = COF[N + 1]
+    # print("N, COF[N]", N, COF[N])
+    flag = 1
+    U = COF[N]
+    if (U == 0): 
+        # print("U == 0")
+        flag = 0
+        return (flag, X, Y, SUMSQ, N, 0, 0)
+    else : 
+        for I in range(N): 
+            # (L + 1) = N - (I + 1) + 1
+            L = N - I - 1
+            XT2 = X * XT - Y * YT
+            YT2 = X * YT + Y * XT
+            # print((X, Y, XT, YT, XT2, YT2, U, V, UX, UY))
+            U += COF[L] * XT2
+            V += COF[L] * YT2
+            FI = (I + 1)
+            UX += FI * XT * COF[L]
+            UY -= FI * YT * COF[L]
+            XT = XT2
+            YT = YT2
+        SUMSQ = UX * UX + UY * UY
+        # print(SUMSQ)
+        if (SUMSQ != 0): 
+            DX = (V * UY - U * UX) / SUMSQ
+            X += DX
+            DY = -(U * UY + V * UX) / SUMSQ
+            Y += DY
+        else :
+            DX = 0.
+            DY = 0.
+        # print(X, Y)
+    return (flag, X, Y, SUMSQ, N, DX, DY)
+#_______________________________________________________________________________
+#_______________________________________________________________________________
+def POLRT_increment_initial_values(XO, YO, ICT, IN): 
+    """
+    """
+    X = XO
+    # increment initial values and counter
+    XO = -10.0 * YO
+    YO = -10.0 * X
+    # set X and Y to current value
+    X = XO
+    Y = YO
+    ICT = 0
+    IN += 1
+    return (XO, YO, X, Y, ICT, IN)
+#_______________________________________________________________________________
+#_______________________________________________________________________________
+def POLRT_check_root(X, Y, N):
+    """
+    if (abs(Y/X) < 1e-4) this emplies that the root is approximatley a pure real. 
+    if not, we have a complex value and the solution have a complex conjugate. 
+    """
+    if (abs(Y / X) >= 1e-4): 
+        ALPHA = X + X
+        SUMSQ = X * X + Y * Y
+        N -= 2
+        # print("imaginary roots -> N -= 2")
+    else:   
+        Y = 0.0
+        SUMSQ = 0.0
+        ALPHA = X
+        N -= 1
+        # print("real root -> N -= 1")
+    return (X, Y, N, SUMSQ, ALPHA)
+#_______________________________________________________________________________
+#_______________________________________________________________________________
+def POLRT_compute_root(COF, ALPHA, N, SUMSQ, ROOTI, ROOTR, N2, X, Y): 
+    # 140
+    # print("compute root COF: ", COF)
+    COF[1] += ALPHA * COF[0]    
+    for L in range(1, N): 
+        COF[L + 1] += ALPHA * COF[L] - SUMSQ * COF[L - 1]
+    # print("compute root COF: ", COF)
+    ROOTI[N2] = Y
+    ROOTR[N2] = X
+    N2 += 1
+    if (SUMSQ != 0):
+        Y = -Y
+        SUMSQ = 0.0
+        ROOTI[N2] = Y
+        ROOTR[N2] = X
+        N2 += 1
+    # print("ROOT", ROOTR, ROOTI)
+    return (COF, ROOTI, ROOTR, N2)
+#_______________________________________________________________________________
 #_______________________________________________________________________________
 def COHERE(L, N, S): 
     """
@@ -1751,6 +1756,20 @@ def POMAIN(N, LA, A, ADJ, P, DET, S):
     return (ADJ, P, DET, S)
 #_______________________________________________________________________________
 #_______________________________________________________________________________
+def FACT(): 
+    """
+    FACT factors the p x p matrix polynomial (1) into binomial factors (2)
+    
+    (1) $$ A(z) = a_0 + a_1 \, z + a_2 \, z^2+ \cdots + a_m \, z^m $$
+    (2) $$ A(z) = b_0 \, (I + z \, b_1) \, (I + z \, b_2) \cdots (I + z \, b_m) $$
+    
+    p. 177
+    
+    to do
+    """
+    return 
+#_______________________________________________________________________________
+#_______________________________________________________________________________
 def FACTOR(M, N, BS): 
     """
     FACTOR
@@ -1771,13 +1790,13 @@ def FACTOR(M, N, BS):
     LDETR = (LR - 1) * M + 1
     NZR = 2 * NZB
     LRR = LAJ + N1
-    print("LRR", LRR)
-# initialement    R = numpy.empty((M * M * LR, ), "complex")
-    R = numpy.empty((M * M * LAJ, ), "complex")
+    print("LR, LAJ, LDETR, LRR : ", LR, LAJ, LDETR, LRR)
+    # initialement R = numpy.empty((M * M * LR, ), "complex")
+    R = numpy.empty((M * M * LR, ), "complex")
     AJ = numpy.empty((M * M * LAJ), "complex")
     DETR = numpy.empty((LDETR, ), "complex")
     DET = numpy.empty((LDETR, ), "complex")
-    DETP = numpy.empty((LDETR, ), "complex")
+    DETP = complex(0, 0)
     ZR = numpy.empty((NZR, ), "complex")
     ZB = numpy.empty((M * (N - 1), ), "complex")
     RR = numpy.empty((M * M * LRR, ), "complex")
@@ -1793,12 +1812,12 @@ def FACTOR(M, N, BS):
     RZ1 = numpy.empty((M * M, ), "complex")
     W = numpy.empty((M * M, ), "complex")
     BZINV = numpy.empty((M * M, ), "complex")
-# complex DETP, DET, ZER, Z1
-# Compute one side of autocorrelation
+    # complex DETP, DET, ZER, Z1
+    # Compute one side of autocorrelation
     OON = 0 + 0 * M + (N - 1) * M * M  
     R[OON: OON + N * M * M] = HEAT_CPLX(M, M, N, BS, M, M, N, BS, N, R[OON: ])
-# Generate other side of autocorrelation
-    print(("R", R))
+    # Generate other side of autocorrelation
+    # print(("R", R))
     for I in range(1, N): 
         JP = N + I - 1
         JM = N - I - 1
@@ -1806,34 +1825,34 @@ def FACTOR(M, N, BS):
             for K in range(M): 
                 JKJM = J + K * M + JM * M * M
                 KJJP = K + J * M + JP * M * M
-                print((JP, JM, J, K, JKJM, KJJP))
+                # print((JP, JM, J, K, JKJM, KJJP))
                 R[JKJM] = R[KJJP]
-    print("R", R)
-# Find adjugate and autocorrelation of R
-    print("RR.shape", RR.shape)
-    print(">>> PROBLEM HERE WITH RR SHAPE <<<")
-    (AJ, RR[ : 18], DETR, TEMP) = POMAIN(M, LR, R, AJ, RR, DETR, TEMP)
-    print("RR.shape", RR.shape)
-# Find zeros of determinant
+    # print("R", R)
+    # Find adjugate and autocorrelation of R
+    # print("AJ.shape, RR.shape, DETR.shape, TEMP.shape", AJ.shape, RR.shape, DETR.shape, TEMP.shape)
+    LPRR = M * (M * (LR - 1) + 1)
+    (AJ, RR[:LPRR], DETR, TEMP) = POMAIN(M, LR, R, AJ, RR, DETR, TEMP)
+    # print("AJ.shape, RR.shape, DETR.shape, TEMP.shape", AJ.shape, RR.shape, DETR.shape, TEMP.shape)
+    # Find zeros of determinant
     for I in range(LDETR): 
         XCOF[I] = DETR[I].real
     IER = 0
-    (RZR, CZR, IER) = POLRT(XCOF, COF, LDETR - 1, RZR, CZR, IER)
-    print(IER)
+    (COF, RZR, CZR, IER) = POLRT(XCOF, COF, LDETR - 1, RZR, CZR, IER)
+    # print(RZR, CZR, XCOF, LDETR - 1)
     for I in range(NZR): 
         ZR[I] = complex(RZR[I], CZR[I])
     J = 0
+    # print(ZR)
     for I in range(NZR): 
-# It is assumed that no zero has magnitude unity
-        if (abs(ZR[I]) >= 1.0): 
-# CABS is abs for complex 
-# Choose the zeros with magnitude greater than unity to form B
+        # It is assumed that no zero has magnitude unity
+        if (numpy.abs(ZR[I]) >= 1.0): 
+            # CABS is abs for complex 
+            # Choose the zeros with magnitude greater than unity to form B
             DETR[J] = ZR[I]
             J += 1
+    # print(ZR, DETR)
     ZB = MOVE(NZB, DETR, 0, ZB, 0)
-# Set B = I, FACT(J, K, 1) = 1        
-# ZERO(M * M, FACT)
-# ZERO(M * M, B)
+    # Set B = I, FACT(J, K, 1) = 1        
     FACT = ZERO(M * M, FACT)
     B = ZERO(M * M, B)
     for J in range(M):
@@ -1841,60 +1860,70 @@ def FACTOR(M, N, BS):
         FACT[JJ0] = 1. 
         B[JJ0] = 1. 
     LBT = 1
-# Set RR = AJ
-    print("LAJ, M, AJ, RR : ", LAJ, M, AJ, RR)
-#    RR = MOVE(LAJ * M * M, AJ, 0, RR, 0) ? LAJ * M * M > LAJ 
+    # Set RR = AJ
+    # print("LAJ, M, AJ, RR : ", LAJ, M, AJ, RR)
+    # RR = MOVE(LAJ * M * M, AJ, 0, RR, 0) ? LAJ * M * M > LAJ 
     RR = MOVE(LAJ, AJ, 0, RR, 0)
     LRRT = LAJ
-# Loop on the factors (I - Z * PINV * DIAG * P)
+    # Loop on the factors (I - Z * PINV * DIAG * P)
     for IFACTS in range(N1): 
-# Form diagonal matrix
-# ZERO(M * M, DIAG)
+        # Form diagonal matrix
+        # ZERO(M * M, DIAG)
         DIAG = numpy.zeros((M * M, ), "complex")
         for I in range(M):
             II = I + I * M
             IIFACTS = I + IFACTS * M
+            # print("IIFACTS, I, IFACTS:", IIFACTS, I, IFACTS)
             DIAG[II] = 1. / ZB[IIFACTS]
-# Insert zeros in RR to get eigenvectors
+        # Insert zeros in RR to get eigenvectors
         for IVECT in range(M): 
-# ZERO(M * M, CR)
+            # ZERO(M * M, CR)
             CR = numpy.zeros((M * M, ), "complex")
             IVECTIFACTS = IVECT + IFACTS * M
+            # print("IVECTIFACTS, IVECT, IFACTS:", IVECTIFACTS, IVECT, IFACTS)
             ZER = ZB[IVECTIFACTS]
             for I in range(LRRT):
-                ZI = ZER ** (I - LAJ / 2.)
+                # ZI = ZER ** ((I + 1) - 1 - LAJ / 2)
+                ZI = ZER ** (I - LAJ / 2)
                 for K in range(M):
                     for J in range(M): 
                         JK = J + K * M
                         JKI = J + K * M + I * M * M
-                        print(I, J, K, JK, JKI, RR.shape, CR.shape)
+                        # print(I, J, K, JK, JKI, RR.shape, CR.shape)
                         CR[JK] += RR[JKI] * ZI 
             for I in range(M):
                 IVECTI = IVECT + I * M
-# [0, I] becomes [I]
-                P[IVECTI] = CR[I]
-# Form PINV * DIAG * P
-# [1, 1, 2] becomes [1]
+                # [0, I] becomes [I * M]
+                P[IVECTI] = CR[I * M]
+        # end for IVECT
+        # Form PINV * DIAG * P
+        # [1, 1, 2] becomes [1*M*M]
         OOT = 0 + 0 * M + 1 * M * M
-        print(FACT)
-        FACT[OOT: OOT + M * M] = BRAINY(M, M, 1, DIAG, M, M, 1, P, FACT)
-        (PINV, DETP, DIAG, TEMP) = FADDEJ_CPLX(M, P, PINV, DETP, DIAG, TEMP)
-# [1, 1, 2] becomes [1]
+        # print(FACT)
+        # print(OOT, FACT.real, DIAG)
+        FACT[OOT: OOT + M * M] = BRAINY(M, M, 1, DIAG, M, M, 1, P, FACT[OOT:])
+        print(PINV.shape, DETP, DIAG.shape, TEMP.shape)
+        print(PINV)
+        try : 
+            (PINV, DETP, DIAG, TEMP) = FADDEJ_CPLX(M, P, PINV, DETP, DIAG, TEMP)
+        except ComplexWarning as e:
+            print(e)
+        print(PINV.shape, DETP, DIAG.shape, TEMP.shape)
         P = MOVE(M * M, FACT, OOT, P, 0)
-# [1, 1, 2] becomes [1]
-        FACT[OOT: OOT + M * M] = BRAINY(M, M, 1, PINV, M, M, 1, P, FACT)
-# [1, 1, 2] becomes [1]
-        FACT[OOT: ] = SCALE(-1., M * M, FACT[OOT:])
-# Set RR = RR * (I - Z * PINV * DIAG * P)
-        TEMP = BRAINY(M, M, LRRT, RR, M, M, 2, FACT, TEMP)
+        FACT[OOT: OOT + M * M] = BRAINY(M, M, 1, PINV, M, M, 1, P, FACT[OOT:])
+        FACT[OOT: OOT + M * M] = SCALE(-1., M * M, FACT[OOT:])
+        # Set RR = RR * (I - Z * PINV * DIAG * P)
+        ltemp = M * M * (LRRT + 2 - 1)
+        TEMP[: ltemp] = BRAINY(M, M, LRRT, RR, M, M, 2, FACT, TEMP[: ltemp])
         LRRT += 1
         RR = MOVE(LRRT * M * M, TEMP, 0, RR, 0)
-# Set B = B * (I - FACT)
-        TEMP = BRAINY(M, M, LBT, B, M, M, 2, FACT, TEMP)
+        # Set B = B * (I - FACT)
+        ltemp = M * M * (LBT + 2 - 1)
+        TEMP[: ltemp] = BRAINY(M, M, LBT, B, M, M, 2, FACT, TEMP[: ltemp])
         LBT += 1
         B = MOVE(M * M * LBT, TEMP, 0,  B, 0)
     TEMP = HEAT_CPLX(M, M, N, B, M, M, N, B, N, TEMP)
-# Form B(Z = 1) and R(Z = 1)
+    # Form B(Z = 1) and R(Z = 1)
     RZ1 = numpy.zeros((M * M, ))
     BZ1 = numpy.zeros((M * M, ))
     for J in range(M): 
@@ -1906,17 +1935,18 @@ def FACTOR(M, N, BS):
             for I in range(LR): 
                 JKI = JK + I * M
                 RZ1[JK] += R[JKI]
-# Form BINV(Z = 1) * R(Z = 1) * BINVTRANSP(Z = 1) = W
+    # end for J, K, I
+    # Form BINV(Z = 1) * R(Z = 1) * BINVTRANSP(Z = 1) = W
     (BZINV, DET, TEMP, W) = FADDEJ_CPLX(M, BZ1, BZINV, DET, TEMP, W)
     TEMP = BRAINY(M, M, 1, BZINV, M, M, 1, RZ1, TEMP)
     W = HEAT_CPLX(M, M, 1, TEMP, M, M, 1, BZINV, 1, W)
-# Triangularize W
+    # Triangularize W
     TEMP = TRIANG_CPLX(M, W, V, TEMP)
-# Put B in causal-chain form
+    # Put B in causal-chain form
     TEMP = HEAT_CPLX(M, M, N, B, M, M, 1, V, N, TEMP)
     B = MOVE(M * M * N, TEMP, 0, B, 0)
     TEMP = HEAT_CPLX(M, M, N, B, M, M, N, B, N, TEMP)
-#    return (LR, R, LAJ, AJ, LDETR, DETR, NZR, ZR, ZB, LRR, RR, FACT, DIAGCR, P, PINV, V, TEMP, B, BZ1, RZ1, W, BZINV)
+    # return (LR, R, LAJ, AJ, LDETR, DETR, NZR, ZR, ZB, LRR, RR, FACT, DIAGCR, P, PINV, V, TEMP, B, BZ1, RZ1, W, BZINV)
     return (LR, R, LAJ, AJ, LDETR, DETR, NZR, ZR, ZB, B)
 #_______________________________________________________________________________
 #_______________________________________________________________________________

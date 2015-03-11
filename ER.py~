@@ -42,7 +42,7 @@ sunspot_X = numpy.array([
 66, 62, 66, 197, 63, 0, 121, 0, 113, 27, 107, 50, 122, 127, 152, 216, 171, 70, 141, 69, 160, 92, 70, 46, 96, 78, 110, 79, 85, 113, 59, 86, 199, 53, 81, 81, 156, 27, 81, 107, 152, 99, 177, 48, 70, 158, 22, 43, 102, 111, 90, 86, 119, 82, 79, 111, 60, 118, 206, 122, 134, 131, 84, 100, 99, 99, 69, 67, 26, 106, 108, 155, 40, 75, 99, 86, 127, 201, 76, 64, 31, 138, 163, 98, 70, 155, 97, 82, 90, 122, 70, 96, 111, 42, 97, 91, 64, 81, 162, 137], dtype="float")
 #_______________________________________________________________________________
 #_______________________________________________________________________________
-def eval_pol_and_deriv(COF, X, Y, SUMSQ, ALPHA, N):
+def eval_pol_and_deriv(COF, X, Y, SUMSQ, N):
     # evaluate polynomial and derivatives    
     UX = 0.0
     UY = 0.0
@@ -54,7 +54,7 @@ def eval_pol_and_deriv(COF, X, Y, SUMSQ, ALPHA, N):
     U = COF[N]
     if (U == 0): 
         print("U == 0")
-        return (U, X, Y, SUMSQ, ALPHA, N, 0, 0)
+        return (U, X, Y, SUMSQ, N, 0, 0)
     else : 
         for I in range(N): 
             # (L + 1) = N - (I + 1) + 1
@@ -64,7 +64,7 @@ def eval_pol_and_deriv(COF, X, Y, SUMSQ, ALPHA, N):
             # print((X, Y, XT, YT, XT2, YT2, U, V, UX, UY))
             U += COF[L] * XT2
             V += COF[L] * YT2
-            FI = I
+            FI = (I + 1)
             UX += FI * XT * COF[L]
             UY -= FI * YT * COF[L]
             XT = XT2
@@ -79,7 +79,8 @@ def eval_pol_and_deriv(COF, X, Y, SUMSQ, ALPHA, N):
         else :
             DX = 0.
             DY = 0.
-    return (U, X, Y, SUMSQ, ALPHA, N, DX, DY)
+        print(X, Y)
+    return (U, X, Y, SUMSQ, N, DX, DY)
     
 def increment_initial_values(XO, YO, ICT, IN): 
     """
@@ -1100,11 +1101,10 @@ def POLRT(XCOF, COF, M, ROOTR, ROOTI, IER):
     # zero initial value counter
     IN = 0
     (XO, YO, X, Y, ICT, IN) = increment_initial_values(XO, YO, ICT, IN)
-    while (N > -1): 
+    while (N > 0): 
     #    print((N, X, Y))
     # evaluate polynomial and derivatives 
-        (U, X, Y, SUMSQ, ALPHA, N, DX, DY) = eval_pol_and_deriv(COF, 
-            X, Y, SUMSQ, ALPHA, N)
+        (U, X, Y, SUMSQ, N, DX, DY) = eval_pol_and_deriv(COF, X, Y, SUMSQ, N)
         if (U == 0): 
             X = 0.0
             NX -= 1
@@ -1145,6 +1145,9 @@ def POLRT(XCOF, COF, M, ROOTR, ROOTI, IER):
                     ICT += 1
                     # print(ABS(DY) + ABS(DX))
                     if (ICT < 500): 
+                        # print(SUMSQ)
+                        # print(ABS(DY) + ABS(DX))
+                        # print(X, Y)
                         pass                        
                     else : 
                         print("ICT >= 500")
