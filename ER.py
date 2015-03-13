@@ -1681,8 +1681,8 @@ def BRAINY(NRA, NCA, LA, A, NRB, NCB, LB, B, C):
     p. 154
     """
     LC = LA + LB - 1
-# ZERO(NRA*NRB*LC,C)
-    C = numpy.zeros((NRA * NRB * LC, ))
+    # ZERO(NRA*NRB*LC, C)
+    C = ZERO(NRA * NRB * LC, C)
     for I in range(LA):
         for J in range(LB): 
             K = I + J
@@ -1713,46 +1713,47 @@ def POMAIN(N, LA, A, ADJ, P, DET, S):
     
     p. 162
     """
-#    complex A, ADJ, P, DET, S
+    # complex A, ADJ, P, DET, S
     LADJ = (N - 1) * (LA - 1) + 1
     LDET = N * (LA - 1) + 1
     P = numpy.empty((N * LDET, ), "complex")
     DET = numpy.empty((LDET, ), "complex")
     ADJ = numpy.empty((N * N * LADJ, ), "complex")
-#    MOVE(N * N * LA, A, S)
-    S = A.copy()
+    S = numpy.empty(N * N * LDET, "complex")
+    S = MOVE(N * N * LA, A, 0, S, 0)
     J = LA
+    #print("___POMAIN___")
     for L in range(N): 
-# Calculate coefficients P[., K] of characteristic polynomial
+        # Calculate coefficients P[., K] of characteristic polynomial
         for K in range(J):
             LK = L + K * N
             P[LK] = 0.
             for I in range(N): 
                 IIK = I + I * N + K * N * N
-#                P[LK] += S[IIK] / float(L)
+                # P[LK] += S[IIK] / float(L)
                 P[LK] += S[IIK] / float(L + 1)
-#        if (L != N): 
+        # if (L != N): 
         if (L < N - 1): 
-# Substract P[., K]*identity matrix 
-#            MOVE(N * N * J, S, ADJ)
+            # Substract P[., K]*identity matrix 
+            # MOVE(N * N * J, S, ADJ)
             ADJ = MOVE(N * N * J, S, 0, ADJ, 0)
             for I in range(N): 
                 for K in range(J): 
                     IIK = I + I * N + K * N * N
                     LK = L + K * N
                     ADJ[IIK] -= P[LK]
-# Multiply by input matrix 
-#            BRAINY(N, N, LA, A, N, N, J, ADJ, S)
+            # Multiply by input matrix 
             S = BRAINY(N, N, LA, A, N, N, J, ADJ, S)
             J += LA - 1
-# Give determinant and adjugate correct sign
-# Now J = LDET = LA + (N - 1) * (LA - 1) = N * (LA - 1) + 1
-# Hence J - LA + 1 = (N - 1) * (LA - 1) + 1 = LADJ
+    # Give determinant and adjugate correct sign
+    # Now J = LDET = LA + (N - 1) * (LA - 1) = N * (LA - 1) + 1
+    # Hence J - LA + 1 = (N - 1) * (LA - 1) + 1 = LADJ
     ADJ = SCALE(float(2 * MOD(N, 2) - 1), N * N * (J - LA + 1), ADJ)
     for L in range(J): 
-#       NL = N + L * N
+        # NL = N + L * N
         NL = N - 1 + L * N
         DET[L] = P[NL] * float(2 * MOD(N, 2) - 1)
+    #print("___")
     return (ADJ, P, DET, S)
 #_______________________________________________________________________________
 #_______________________________________________________________________________
@@ -1776,13 +1777,12 @@ def FACTOR(M, N, BS):
     
     p. 197
     
-    not tested yet
     """
     NX = 49
-    XCOF = numpy.empty((NX + 1, ))
-    COF = numpy.empty((NX + 1, ))
-    RZR = numpy.empty((NX, ))    
-    CZR = numpy.empty((NX, ))
+    XCOF = numpy.zeros((NX + 1, ))
+    COF = numpy.zeros((NX + 1, ))
+    RZR = numpy.zeros((NX, ))    
+    CZR = numpy.zeros((NX, ))
     N1 = N - 1
     NZB = N1 * M
     LR = N + N1
@@ -1791,27 +1791,27 @@ def FACTOR(M, N, BS):
     NZR = 2 * NZB
     LRR = LAJ + N1
     print("LR, LAJ, LDETR, LRR : ", LR, LAJ, LDETR, LRR)
-    # initialement R = numpy.empty((M * M * LR, ), "complex")
-    R = numpy.empty((M * M * LR, ), "complex")
-    AJ = numpy.empty((M * M * LAJ), "complex")
-    DETR = numpy.empty((LDETR, ), "complex")
-    DET = numpy.empty((LDETR, ), "complex")
+    # initialement R = numpy.zeros((M * M * LR, ), "complex")
+    R = numpy.zeros((M * M * LR, ), "complex")
+    AJ = numpy.zeros((M * M * LAJ), "complex")
+    DETR = numpy.zeros((LDETR, ), "complex")
+    DET = complex(0, 0)
     DETP = complex(0, 0)
-    ZR = numpy.empty((NZR, ), "complex")
-    ZB = numpy.empty((M * (N - 1), ), "complex")
-    RR = numpy.empty((M * M * LRR, ), "complex")
-    FACT = numpy.empty((M * M * 2, ), "complex")
-    DIAG = numpy.empty((M * M, ), "complex")
-    CR = numpy.empty((M * M, ), "complex")
-    P = numpy.empty((M * M), "complex")
-    PINV = numpy.empty((M * M, ), "complex")
-    V = numpy.empty((M * M, ), "complex")
-    TEMP = numpy.empty((M * M * LDETR, ), "complex")
-    B = numpy.empty((M * M * N, ), "complex")
-    BZ1 = numpy.empty((M * M, ), "complex")
-    RZ1 = numpy.empty((M * M, ), "complex")
-    W = numpy.empty((M * M, ), "complex")
-    BZINV = numpy.empty((M * M, ), "complex")
+    ZR = numpy.zeros((NZR, ), "complex")
+    ZB = numpy.zeros((M * (N - 1), ), "complex")
+    RR = numpy.zeros((M * M * LRR, ), "complex")
+    FACT = numpy.zeros((M * M * 2, ), "complex")
+    DIAG = numpy.zeros((M * M, ), "complex")
+    CR = numpy.zeros((M * M, ), "complex")
+    P = numpy.zeros((M * M), "complex")
+    PINV = numpy.zeros((M * M, ), "complex")
+    V = numpy.zeros((M * M, ), "complex")
+    TEMP = numpy.zeros((M * M * LDETR, ), "complex")
+    B = numpy.zeros((M * M * N, ), "complex")
+    BZ1 = numpy.zeros((M * M, ), "complex")
+    RZ1 = numpy.zeros((M * M, ), "complex")
+    W = numpy.zeros((M * M, ), "complex")
+    BZINV = numpy.zeros((M * M, ), "complex")
     # complex DETP, DET, ZER, Z1
     # Compute one side of autocorrelation
     OON = 0 + 0 * M + (N - 1) * M * M  
@@ -1819,19 +1819,21 @@ def FACTOR(M, N, BS):
     # Generate other side of autocorrelation
     # print(("R", R))
     for I in range(1, N): 
-        JP = N + I - 1
+        # (JP + 1) = N + (I + 1) - 1
+        JP = N + I - 1 
+        # (JM + 1) = N - (I + 1) + 1
         JM = N - I - 1
         for J in range(M): 
             for K in range(M): 
                 JKJM = J + K * M + JM * M * M
                 KJJP = K + J * M + JP * M * M
-                # print((JP, JM, J, K, JKJM, KJJP))
+                # print("I, JP, JM, J, K, JKJM, KJJP", I, JP, JM, J, K, JKJM, KJJP)
                 R[JKJM] = R[KJJP]
     # print("R", R)
     # Find adjugate and autocorrelation of R
     # print("AJ.shape, RR.shape, DETR.shape, TEMP.shape", AJ.shape, RR.shape, DETR.shape, TEMP.shape)
-    LPRR = M * (M * (LR - 1) + 1)
-    (AJ, RR[:LPRR], DETR, TEMP) = POMAIN(M, LR, R, AJ, RR, DETR, TEMP)
+    LPOMAINRR = M * (M * (LR - 1) + 1)
+    (AJ, RR[: LPOMAINRR], DETR, TEMP) = POMAIN(M, LR, R, AJ, RR, DETR, TEMP)
     # print("AJ.shape, RR.shape, DETR.shape, TEMP.shape", AJ.shape, RR.shape, DETR.shape, TEMP.shape)
     # Find zeros of determinant
     for I in range(LDETR): 
@@ -1861,15 +1863,14 @@ def FACTOR(M, N, BS):
         B[JJ0] = 1. 
     LBT = 1
     # Set RR = AJ
-    # print("LAJ, M, AJ, RR : ", LAJ, M, AJ, RR)
-    # RR = MOVE(LAJ * M * M, AJ, 0, RR, 0) ? LAJ * M * M > LAJ 
-    RR = MOVE(LAJ, AJ, 0, RR, 0)
+    RR = MOVE(LAJ * M * M, AJ, 0, RR, 0)
     LRRT = LAJ
     # Loop on the factors (I - Z * PINV * DIAG * P)
     for IFACTS in range(N1): 
+        # print("IFACTS, N1", IFACTS, N1)
         # Form diagonal matrix
         # ZERO(M * M, DIAG)
-        DIAG = numpy.zeros((M * M, ), "complex")
+        DIAG = ZERO(M * M, DIAG)
         for I in range(M):
             II = I + I * M
             IIFACTS = I + IFACTS * M
@@ -1878,7 +1879,7 @@ def FACTOR(M, N, BS):
         # Insert zeros in RR to get eigenvectors
         for IVECT in range(M): 
             # ZERO(M * M, CR)
-            CR = numpy.zeros((M * M, ), "complex")
+            CR = ZERO(M * M, CR)
             IVECTIFACTS = IVECT + IFACTS * M
             # print("IVECTIFACTS, IVECT, IFACTS:", IVECTIFACTS, IVECT, IFACTS)
             ZER = ZB[IVECTIFACTS]
@@ -1899,41 +1900,43 @@ def FACTOR(M, N, BS):
         # Form PINV * DIAG * P
         # [1, 1, 2] becomes [1*M*M]
         OOT = 0 + 0 * M + 1 * M * M
-        # print(FACT)
         # print(OOT, FACT.real, DIAG)
         FACT[OOT: OOT + M * M] = BRAINY(M, M, 1, DIAG, M, M, 1, P, FACT[OOT:])
-        print(PINV.shape, DETP, DIAG.shape, TEMP.shape)
-        print(PINV)
-        try : 
-            (PINV, DETP, DIAG, TEMP) = FADDEJ_CPLX(M, P, PINV, DETP, DIAG, TEMP)
-        except ComplexWarning as e:
-            print(e)
-        print(PINV.shape, DETP, DIAG.shape, TEMP.shape)
+        # print(PINV.shape, DETP, DIAG.shape, TEMP.shape)
+        # print(PINV)
+        # try : 
+        (PINV, DETP, DIAG, TEMP) = FADDEJ_CPLX(M, P, PINV, DETP, DIAG, TEMP)
+        # except ComplexWarning as e:
+        # print(e)
+        # print(PINV)
+        # print(PINV.shape, DETP, DIAG.shape, TEMP.shape)
         P = MOVE(M * M, FACT, OOT, P, 0)
         FACT[OOT: OOT + M * M] = BRAINY(M, M, 1, PINV, M, M, 1, P, FACT[OOT:])
         FACT[OOT: OOT + M * M] = SCALE(-1., M * M, FACT[OOT:])
         # Set RR = RR * (I - Z * PINV * DIAG * P)
-        ltemp = M * M * (LRRT + 2 - 1)
-        TEMP[: ltemp] = BRAINY(M, M, LRRT, RR, M, M, 2, FACT, TEMP[: ltemp])
+        # print(TEMP.shape)
+        # ltemp = M * M * (LRRT + 2 - 1)
+        TEMP = BRAINY(M, M, LRRT, RR, M, M, 2, FACT, TEMP)
         LRRT += 1
         RR = MOVE(LRRT * M * M, TEMP, 0, RR, 0)
         # Set B = B * (I - FACT)
-        ltemp = M * M * (LBT + 2 - 1)
-        TEMP[: ltemp] = BRAINY(M, M, LBT, B, M, M, 2, FACT, TEMP[: ltemp])
+        # ltemp = M * M * (LBT + 2 - 1)
+        TEMP = BRAINY(M, M, LBT, B, M, M, 2, FACT, TEMP)
         LBT += 1
         B = MOVE(M * M * LBT, TEMP, 0,  B, 0)
+    # 60 
     TEMP = HEAT_CPLX(M, M, N, B, M, M, N, B, N, TEMP)
     # Form B(Z = 1) and R(Z = 1)
-    RZ1 = numpy.zeros((M * M, ))
-    BZ1 = numpy.zeros((M * M, ))
+    RZ1 = ZERO(M * M, RZ1)
+    BZ1 = ZERO(M * M, BZ1)
     for J in range(M): 
         for K in range(M): 
             JK = J + K * M
             for I in range(N):
-                JKI = JK + I * M
+                JKI = JK + I * M * M
                 BZ1[JK] += B[JKI]
             for I in range(LR): 
-                JKI = JK + I * M
+                JKI = JK + I * M * M
                 RZ1[JK] += R[JKI]
     # end for J, K, I
     # Form BINV(Z = 1) * R(Z = 1) * BINVTRANSP(Z = 1) = W
@@ -1941,7 +1944,9 @@ def FACTOR(M, N, BS):
     TEMP = BRAINY(M, M, 1, BZINV, M, M, 1, RZ1, TEMP)
     W = HEAT_CPLX(M, M, 1, TEMP, M, M, 1, BZINV, 1, W)
     # Triangularize W
-    TEMP = TRIANG_CPLX(M, W, V, TEMP)
+    #print("V, W, TEMP", V, W, TEMP)
+    (V, TEMP) = TRIANG_CPLX(M, W, V, TEMP)
+    #print("V, W, TEMP", V, W, TEMP)
     # Put B in causal-chain form
     TEMP = HEAT_CPLX(M, M, N, B, M, M, 1, V, N, TEMP)
     B = MOVE(M * M * N, TEMP, 0, B, 0)
@@ -1991,6 +1996,8 @@ def FADDEJ_CPLX(N, A, AINV, DET, ADJUG, P):
     
     p. 40
     """
+    # print("__FADDEJ_CPLX__")
+    # print(A.dtype, AINV.dtype, DET, ADJUG.dtype, P.dtype)
     AINV = MOVE(N * N, A, 0, AINV, 0)
     for K in range(N): 
         P[K] = 0.0
@@ -2020,6 +2027,7 @@ def FADDEJ_CPLX(N, A, AINV, DET, ADJUG, P):
             for J in range(N): 
                 IJ = I + J * N
                 ADJUG[IJ] = - ADJUG[IJ]
+    # print("___")
     return (AINV, DET, ADJUG, P)
 #_______________________________________________________________________________
 #_______________________________________________________________________________
