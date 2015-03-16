@@ -1682,6 +1682,7 @@ def BRAINY(NRA, NCA, LA, A, NRB, NCB, LB, B, C):
     """
     LC = LA + LB - 1
     # ZERO(NRA*NRB*LC, C)
+    # print(NRA * NRB * LC)
     C = ZERO(NRA * NRB * LC, C)
     for I in range(LA):
         for J in range(LB): 
@@ -1694,6 +1695,30 @@ def BRAINY(NRA, NCA, LA, A, NRB, NCB, LB, B, C):
                         LNJ = L + N * NCA + J * NCA * NCB
                         C[MNK] += A[MLI] * B[LNJ]
     return C
+#_______________________________________________________________________________
+#_______________________________________________________________________________
+def RITE(NB, M, N, L, A): 
+    """
+    RITE 
+    
+    p. 55
+    """
+    for i in range(L):
+        print("___")   
+        for j in range(M):
+            s = "["
+            for k in range(N): 
+                IJK = j + k * M + i * M * N
+                c = A[IJK]
+                s += str(c)
+                if k == (N - 1): 
+                    s += "]"
+                else: 
+                    s += " "
+            print(s)
+        print("___")    
+    return 
+
 #_______________________________________________________________________________
 #_______________________________________________________________________________
 def SCALE(S, LX, X): 
@@ -1757,7 +1782,7 @@ def POMAIN(N, LA, A, ADJ, P, DET, S):
     return (ADJ, P, DET, S)
 #_______________________________________________________________________________
 #_______________________________________________________________________________
-def FACT(): 
+def FACT(N, LA, A, ADJ, ZEROS, S, B): 
     """
     FACT factors the p x p matrix polynomial (1) into binomial factors (2)
     
@@ -1766,9 +1791,101 @@ def FACT():
     
     p. 177
     
-    to do
     """
-    return 
+    # COMPLEX A,ADJ,ZEROS,S,B,ZI
+    A = A.astype("complex")
+    ADJ = ADJ.astype("complex")
+    ZEROS = ZEROS.astype("complex")
+    S = S.astype("complex")
+    B = B.astype("complex")
+    ZI = complex(0, 0)
+    # LADJ=(N-1)*(LA-1)+1
+    # DIMENSION ADJ(N,N,LADJ),ZEROS(N,LA-1),S(N,N,5+2*LADJ)
+    NP = LA - 1
+    # INPUTS ARE MATRIX POLYNOMIALS A,ITS ADJUGATE ADJ,ZEROS OF DET A
+    # OUTPUTS IS B WHERE A(Z)=B0*(I+ZB1)*(I+ZB2)*...*(1+ZBNP)
+    # MOVE ADJUGATE TO S(1, 1, 6)
+    OOS = 5 * N * N 
+    # S = MOVE(N * N * ((N - 1) * NP + 1), ADJ, 0, S, OOS)
+    # print("ADJ.shape, S.shape, N * N * ((N - 1) * NP + 1), OOS", ADJ.shape, S.shape, N * N * ((N - 1) * NP + 1), OOS)
+    S = MOVE(N * N * ((N - 1) * NP + 1), ADJ, 0, S, OOS)
+    # LOOP ON THE FACTORS (I + Z * Q * D * QINV)
+    for IP in range(NP): 
+        # L = (N - 1) * NP + IP
+        L = (N - 1) * NP + (IP + 1)
+        # CALL RITE(2, N, N, L, S(1, 1, 6))
+        S = ZERO(N * N * 5, S) 
+        for ICOL in range(N): 
+            # INSERT ROOTS INTO (PREVIOUS FACTORS*ADJUGATE) TO GET EIGENCOLUMNS.
+            B = ZERO(N * N, B)
+            for I in range(L): 
+                # ZI = ZEROS[ICOL, IP] ** (I - 1)
+                ICOLIP = ICOL + IP * N
+                ZI = ZEROS[ICOLIP] ** I
+                print(ZI)
+                for K in range(N): 
+                    for J in range(N):
+                        # JKO = (J, K, 1)
+                        JKO = J + K * N
+                        # JKIPF = (J, K, I + 5)
+                        JKIPF = JKO + (I + 5) * N * N
+                        B[JKO] += S[JKIPF] * ZI
+            # 10
+            print("___________")
+            RITE(2, N, N, 1, B)
+            print("___________")
+            # print("B", B)
+            # FORM MATRIX Q OF EIGENCOLUMNS AND STORE IN S(1,1,3)
+            # OICOLT = (1, ICOL, 3)
+            OICOLT = ICOL * N + 2 * N * N
+            S = MOVE(N, B, 0, S, OICOLT)
+            # FORM DIAGONAL MATRIX D WITH -1./ZERO AND STORE IN S(1,1,4)
+            # ICOLICOLF = (ICOL, ICOL, 4)
+            ICOLICOLF = ICOL + ICOL * N + 3 * N * N
+            # ICOLIP = (ICOL, IP)
+            ICOLIP = ICOL + IP * N
+            S[ICOLICOLF] = -1. / ZEROS[ICOLIP]
+            # FORM IDENTITY MATRIX I AND STORE IN S(1,1,1).
+            # ICOLICOLO = (ICOL, ICOL, 1) 
+            ICOLICOLO = ICOL + ICOL * N 
+            S[ICOLICOLO] = 1.0
+        # 20 
+        # FORM Q**-1 AND STORE IN S(1,1,5).
+        # OOTW = (1, 1, 2)
+        OOTW = 1 * N * N
+        # OOTH = (1, 1, 3)
+        OOTH = 2 * N * N
+        # OOFO = (1, 1, 4)
+        OOFO = 3 * N * N
+        # OOFI = (1, 1, 5)
+        OOFI = 4 * N * N
+        S[OOFI: ] = MAINV_CPLX(N, S[OOTH: ], S[OOFI: ])
+        # FORM Q*D*Q**-1 AND STORE IN S(1,1,2)
+        B = BRAINY(N, N, 1, S[OOTH: ], N, N, 1, S[OOFO: ], B)
+        S[OOTW: OOTW + N * N] = BRAINY(N, N, 1, B, N, N, 1, S[OOFI: ], S[OOTW: OOTW + N * N])
+        print("______________")
+        RITE(2, N, N, 5, S)
+        print("______________")
+        # print("S[OOTW: ]", S[OOTW: ])
+        # STORE MATRIX Q*D*Q**-1 IN B ARRAY.
+        # I = NP - IP + 2
+        I = NP - IP
+        OOI = I * N * N
+        # print("I, OOTW, OOI", I, OOTW, OOI)
+        B = MOVE(N * N, S, OOTW, B, OOI)
+        # NEW FACTOR = (I+Z*Q*D*Q**-1) = (I+Z*B)
+        # FORM FACTOR*(PREVIOUS FACTORS*ADJUGATE) AND STORE IN S(1,1,6)
+        # OOLPS = (1, 1, L + 6)
+        OOLPS = (L + 5) * N * N
+        # OOS = (1, 1, 6)
+        OOS = 5 * N * N
+        # print("L, S.shape, OOLPS, OOS", L, S.shape, OOLPS, OOS)
+        # print(OOLPS + N * N * (L + 1))
+        S[OOLPS: OOLPS + N * N * (L + 1)] = BRAINY(N, N, 2, S, N, N, L, S[OOS: ], S[OOLPS: OOLPS + N * N * (L + 1)])
+        S = MOVE(N * N * (L + 1), S, OOLPS, S, OOS)
+    # 30 
+    B = MOVE(N * N, A, 0, B, 0)
+    return (S, B)
 #_______________________________________________________________________________
 #_______________________________________________________________________________
 def FACTOR(M, N, BS): 
@@ -1998,6 +2115,11 @@ def FADDEJ_CPLX(N, A, AINV, DET, ADJUG, P):
     """
     # print("__FADDEJ_CPLX__")
     # print(A.dtype, AINV.dtype, DET, ADJUG.dtype, P.dtype)
+    A = A.astype("complex")
+    AINV = AINV.astype("complex")
+    ADJUG = ADJUG.astype("complex")
+    P = P.astype("complex")
+    DET = complex(0, 0)
     AINV = MOVE(N * N, A, 0, AINV, 0)
     for K in range(N): 
         P[K] = 0.0

@@ -1810,11 +1810,18 @@ def FACT(N, LA, A, ADJ, ZEROS, S, B):
     # print("ADJ.shape, S.shape, N * N * ((N - 1) * NP + 1), OOS", ADJ.shape, S.shape, N * N * ((N - 1) * NP + 1), OOS)
     S = MOVE(N * N * ((N - 1) * NP + 1), ADJ, 0, S, OOS)
     # LOOP ON THE FACTORS (I + Z * Q * D * QINV)
-    for IP in range(NP): 
+    for IP in range(NP):
+        print("-----------------")
+        print("IP ", IP)
+        print(" ")
         # L = (N - 1) * NP + IP
         L = (N - 1) * NP + (IP + 1)
         # CALL RITE(2, N, N, L, S(1, 1, 6))
         S = ZERO(N * N * 5, S) 
+        print("___________")
+        RITE(2, N, N, 9, S)
+        print("___________")
+
         for ICOL in range(N): 
             # INSERT ROOTS INTO (PREVIOUS FACTORS*ADJUGATE) TO GET EIGENCOLUMNS.
             B = ZERO(N * N, B)
@@ -1822,7 +1829,7 @@ def FACT(N, LA, A, ADJ, ZEROS, S, B):
                 # ZI = ZEROS[ICOL, IP] ** (I - 1)
                 ICOLIP = ICOL + IP * N
                 ZI = ZEROS[ICOLIP] ** I
-                print(ZI)
+                print("I, ZI, ", I, ZI)
                 for K in range(N): 
                     for J in range(N):
                         # JKO = (J, K, 1)
@@ -1830,6 +1837,7 @@ def FACT(N, LA, A, ADJ, ZEROS, S, B):
                         # JKIPF = (J, K, I + 5)
                         JKIPF = JKO + (I + 5) * N * N
                         B[JKO] += S[JKIPF] * ZI
+                        print(S[JKIPF])
             # 10
             print("___________")
             RITE(2, N, N, 1, B)
@@ -1839,15 +1847,18 @@ def FACT(N, LA, A, ADJ, ZEROS, S, B):
             # OICOLT = (1, ICOL, 3)
             OICOLT = ICOL * N + 2 * N * N
             S = MOVE(N, B, 0, S, OICOLT)
+            RITE(2, N, N, 8, S)
             # FORM DIAGONAL MATRIX D WITH -1./ZERO AND STORE IN S(1,1,4)
             # ICOLICOLF = (ICOL, ICOL, 4)
             ICOLICOLF = ICOL + ICOL * N + 3 * N * N
             # ICOLIP = (ICOL, IP)
             ICOLIP = ICOL + IP * N
+            print("ICOLICOLF", ICOLICOLF)
             S[ICOLICOLF] = -1. / ZEROS[ICOLIP]
             # FORM IDENTITY MATRIX I AND STORE IN S(1,1,1).
             # ICOLICOLO = (ICOL, ICOL, 1) 
             ICOLICOLO = ICOL + ICOL * N 
+            print("ICOLICOLO", ICOLICOLO)
             S[ICOLICOLO] = 1.0
         # 20 
         # FORM Q**-1 AND STORE IN S(1,1,5).
@@ -1859,8 +1870,10 @@ def FACT(N, LA, A, ADJ, ZEROS, S, B):
         OOFO = 3 * N * N
         # OOFI = (1, 1, 5)
         OOFI = 4 * N * N
+        print(S.shape)
         S[OOFI: ] = MAINV_CPLX(N, S[OOTH: ], S[OOFI: ])
         # FORM Q*D*Q**-1 AND STORE IN S(1,1,2)
+        print(S.shape)
         B = BRAINY(N, N, 1, S[OOTH: ], N, N, 1, S[OOFO: ], B)
         S[OOTW: OOTW + N * N] = BRAINY(N, N, 1, B, N, N, 1, S[OOFI: ], S[OOTW: OOTW + N * N])
         print("______________")
@@ -1870,6 +1883,7 @@ def FACT(N, LA, A, ADJ, ZEROS, S, B):
         # STORE MATRIX Q*D*Q**-1 IN B ARRAY.
         # I = NP - IP + 2
         I = NP - IP
+        print(I)
         OOI = I * N * N
         # print("I, OOTW, OOI", I, OOTW, OOI)
         B = MOVE(N * N, S, OOTW, B, OOI)
@@ -1883,6 +1897,8 @@ def FACT(N, LA, A, ADJ, ZEROS, S, B):
         # print(OOLPS + N * N * (L + 1))
         S[OOLPS: OOLPS + N * N * (L + 1)] = BRAINY(N, N, 2, S, N, N, L, S[OOS: ], S[OOLPS: OOLPS + N * N * (L + 1)])
         S = MOVE(N * N * (L + 1), S, OOLPS, S, OOS)
+        RITE(2, N, N, 5, S)
+        print("-------------")
     # 30 
     B = MOVE(N * N, A, 0, B, 0)
     return (S, B)
