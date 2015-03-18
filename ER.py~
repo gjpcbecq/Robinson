@@ -252,7 +252,7 @@ def MOVE(LX, X, IX, Y, IY):
     p. 18
     
     """
-    print("LOC X IX, LOC Y IY", XLOCF(X), XLOCF(Y))
+    # print("LOC X IX, LOC Y IY", XLOCF(X), XLOCF(Y))
     cond = (XLOCF(X) - XLOCF(Y))
     # print(cond)
     if (cond < 0):
@@ -1917,7 +1917,24 @@ def FACT(N, LA, A, ADJ, ZEROS, S, B):
         print("______________")
        
         # FORM Q*D*Q**-1 AND STORE IN S(1,1,2)
+        print("______________")
+        print("Q")
+        RITE(1, N, N, 1, S[OOTH: ])
+        print("______________")
+        print("______________")
+        print("D")
+        RITE(1, N, N, 1, S[OOFO: ])
+        print("______________")
         B[: N * N] = BRAINY(N, N, 1, S[OOTH: ], N, N, 1, S[OOFO: ], B[: N * N])
+        print("______________")
+        print("B apres Q D")
+        RITE(3, N, N, 3, B)
+        print("______________")
+        print("______________")
+        print("Q-1")
+        RITE(1, N, N, 1, S[OOFI: ])
+        print("______________")
+        
         S[OOTW: OOTW + N * N] = BRAINY(N, N, 1, B, N, N, 1, S[OOFI: ], S[OOTW: OOTW + N * N])
         print("______________")
         print("S apres Q D Q-1")

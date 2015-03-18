@@ -236,6 +236,124 @@ Example:
     return z        
     """
 #_______________________________________________________________________________
+def WIENER_1(N, LX, X, M, LZ, Z, LR, LW, FLOOR, LF, F, E, LY, Y, S): 
+    """
+    WIENER 
+        
+    p. 253
+    """
+    # VERSION 1 OF SUBROUTINE WIENER
+    # DIMENSION X(N,LX),Z(M,LX),F(M,N,LR)
+    # DIMENSION E(LR),Y(M,LY),S(NN*(5*LR+6)+MN*(LR+2)
+    #1+2*M*M
+    NN = N * N
+    NNLR = NN * LR
+    MN = M * R
+    # IR = 1
+    IR = 0
+    # IA = 1 + NNLR
+    IA = NNLR
+    IB = IA + NNLR
+    IAP = IB + NNLR
+    IBP = IAP + NNLR
+    IVA = IBP + NNLR
+    IVB = IVA + NN
+    IDA = IVB + NN
+    IDB = IDA + NN
+    ICA = IDB + NN
+    ICB = ICA + NN
+    IG = ICB + NN
+    ICF = IG + MN * LR
+    IGAM = ICF + MN
+    IH = IGAM + NN
+    IFGT = IH + M * M
+    S[IH] = HEAT(M, 1, LZ, Z, M, 1, LZ, Z, 1, S[IH])
+    if (LW <= 1): 
+        L = LR
+    IGZ = IG + MN * LW
+    IRZ = IR + NN * LW
+    if ((LW >= 1) & (LW < LR)): 
+        L = LW
+    # if ((LW >= 1) & (LW < LR)) ZERO(MN * (LR - LW), S[IGZ])
+        S[IGZ: ] = ZERO(MN * (LR - LW), S[IGZ: ])
+    # if ((LW >= 1) & (LW < LR)) ZERO(NN * (LR - LW), S[IRZ])
+        S[IRZ: ] = ZERO(NN * (LR - LW), S[IRZ: ])
+    # if ((LW >= 1) & (LW >= LR)) L = LR
+    if ((LW >= 1) & (LW >= LR)): 
+        L = LR
+    S[IG: IG + L] = HEAT(M, 1, LZ, Z, N, 1, LX, X, L, S[IG: IG + L])
+    S[IR: IR + L] = HEAT(N, 1, LX, X, N, 1, LX, X, L, S[IR: IR + L])
+    if ((LW <= 1) | (L <= 1)): 
+        # GO TO 2
+        pass
+    else:
+        for K in range(1, L):
+            IGK = IG + K * MN
+            IRK = IR + K * NN
+            # WINDOW = 1.0 - float(K - 1) / float(LW - 1)
+            WINDOW = 1.0 - float(K) / float(LW - 1)
+            S[IGK: IGK + MN] = SCALE(WINDOW, MN, S[IGK: IGK + MN])
+            S[IRK: IRK + NN] = SCALE(WINDOW, NN, S[IRK: IRK + NN])
+    # RECUR(N, M, LR, S[IH], S[IG], FLOOR, LF, F, E, S[IA], 
+    #1S[IB], S[IAP], S[IBP], S[IVA], S[IVB], S[IDA], S[IDB], S[ICA], S[ICB], 
+    #2S[ICF], S[IGAM], S[IFGT])
+    RECUR(N, M, LR, S[IH], S[IG], FLOOR, LF, F, E, S[IA], 
+        S[IB], S[IAP], S[IBP], S[IVA], S[IVB], S[IDA], S[IDB], S[ICA], S[ICB], 
+        S[ICF], S[IGAM], S[IFGT])
+    LY = LX + LF - 1
+    Y = BRAINY(M, N, LF, F, N, 1, LX, X, Y)
+    return (LF, F, E, LY, Y, S) 
+#_______________________________________________________________________________
+#_______________________________________________________________________________
+def RECUR(N, M, LR, R, H, G, FLOOR, LF, F, E, 
+    A, B, AP, BP, VA, VB, DA, DB, CA, CB, CF, GAM, FGT): 
+    """
+    used by WIENER_1
+    """
+    A = ZERO(N * N * LR, A)
+    B = ZERO(N * N * LR, B)
+    F = ZERO(N * N * LR, F)
+    for I in range(N): 
+        for J in range(N): 
+            IJ = I + N * J
+            IJO = I + N * J 
+            VA[IJ] = R[IJO]
+        IIO = I + I * N
+        A[IIO] = 1.
+        B[IIO] = 1.
+    G = SIMEQ1(M, N, F, R, G)
+    LF = 1
+    FGT = HEAT(M, N, 1, F, M, N, 1, G, 1, FGT)
+    E[0] = 1.0 - SPUR(M, FGT) / SPUR(M, H)
+    if (E[0] <= FLOOR):
+        return 
+    if (LR == 1): 
+        return 
+    for L in range(1, LR): 
+        DA = ZERO(N * N, DA)
+        OOL = L * M * N 
+        GAM = MOVE(M * N, G, OOL, GAM, 0)
+        for I in range(N): 
+            for LI in range(L): 
+                # LD = L - LI + 1
+                LD = L - LI + 1
+                for K in range(N):
+                    for J in range(N): 
+                        IJ = I + N * J
+                        IKLI = I + N * K + N * N * LI
+                        DA[IJ] -= A[IKLI] * R[KJLD]
+                    for J in range(M): 
+                        JI = J + M * I
+                        JKLI = J + M * K + M * N * LI
+                        KILD = K + M * I + M * N * LD
+                        GAM[JI] -= F[JKLI] * R[KILD]
+            # 4 end for LI
+            for J in range(N):
+                IJ = I + N * J
+                JI = J + N * I
+                DB[JI] = DA[IJ]
+        # 5 end for I 
+#_______________________________________________________________________________
 #_______________________________________________________________________________
 def ZERO(LX, X):
     if (LX <= 0): 
@@ -935,6 +1053,8 @@ def QUADCO(L, N, R):
 def HEAT(NRX, NCX, LX, X, NRY, NCY, LY, Y, LG, G): 
     """
     HEAT multichannel autocorrelation or cross correlation
+    
+    G = HEAT(NRX, NCX, LX, X, NRY, NCY, LY, Y, LG, G)
     
     p.207
     """
