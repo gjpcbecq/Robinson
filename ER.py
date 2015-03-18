@@ -252,6 +252,7 @@ def MOVE(LX, X, IX, Y, IY):
     p. 18
     
     """
+    # print("LOC X IX, LOC Y IY", XLOCF(X), XLOCF(Y))
     cond = (XLOCF(X) - XLOCF(Y))
     # print(cond)
     if (cond < 0):
@@ -263,7 +264,17 @@ def MOVE(LX, X, IX, Y, IY):
         for I in range(0, LX): 
             Y[IY + I] = X[IX + I].copy()
     else : # (cond == 0)
-        pass
+        cond = (IX - IY)
+        if (cond < 0): 
+            K = LX - 1
+            for I in range(0, LX): 
+                Y[IY + K] = X[IX + K].copy()
+                K -= 1
+        elif (cond > 0):
+            for I in range(0, LX): 
+                Y[IY + I] = X[IX + I].copy()
+        else : 
+            pass
     return Y
 #_______________________________________________________________________________
 #_______________________________________________________________________________
@@ -1703,20 +1714,40 @@ def RITE(NB, M, N, L, A):
     
     p. 55
     """
-    for i in range(L):
-        print("___")   
+    i0 = 0
+    while (i0 < L):
+        listI = []
+        nL = 0
+        for i in range(NB):
+            if (i0 + i < L): 
+                listI.append(i0 + i)
+                nL += 1
+        i0 += NB
         for j in range(M):
-            s = "["
-            for k in range(N): 
-                IJK = j + k * M + i * M * N
-                c = A[IJK]
-                s += str(c)
-                if k == (N - 1): 
+            s = ""
+            for iL in range(nL):         
+                if (j == 0):
+                    s += "["
+                else: 
+                    s += " "
+                for k in range(N): 
+                    if (k == 0): 
+                        s += "["
+                    else: 
+                        s += " "
+                    IJKIL = j + k * M + listI[iL] * M * N 
+                    c = A[IJKIL]
+                    s += str(c)
+                    if k == (N - 1): 
+                        s += "]"
+                    else: 
+                        s += " "
+                if (j == M - 1):
                     s += "]"
                 else: 
                     s += " "
             print(s)
-        print("___")    
+        print("")
     return 
 
 #_______________________________________________________________________________
@@ -1799,6 +1830,7 @@ def FACT(N, LA, A, ADJ, ZEROS, S, B):
     S = S.astype("complex")
     B = B.astype("complex")
     ZI = complex(0, 0)
+    LS = S.size / float(N * N)
     # LADJ=(N-1)*(LA-1)+1
     # DIMENSION ADJ(N,N,LADJ),ZEROS(N,LA-1),S(N,N,5+2*LADJ)
     NP = LA - 1
@@ -1819,10 +1851,13 @@ def FACT(N, LA, A, ADJ, ZEROS, S, B):
         # CALL RITE(2, N, N, L, S(1, 1, 6))
         S = ZERO(N * N * 5, S) 
         print("___________")
-        RITE(2, N, N, 9, S)
+        print("S")
+        RITE(4, N, N, LS, S)
         print("___________")
 
         for ICOL in range(N): 
+            print(".......")
+            print("ICOL, IP", ICOL, IP)
             # INSERT ROOTS INTO (PREVIOUS FACTORS*ADJUGATE) TO GET EIGENCOLUMNS.
             B = ZERO(N * N, B)
             for I in range(L): 
@@ -1836,18 +1871,18 @@ def FACT(N, LA, A, ADJ, ZEROS, S, B):
                         JKO = J + K * N
                         # JKIPF = (J, K, I + 5)
                         JKIPF = JKO + (I + 5) * N * N
+                        print("K,J,JKO, JKIPF, S[JKIPF], B[JKO], ZI", K,J,JKO, JKIPF, S[JKIPF].real, B[JKO], ZI)
                         B[JKO] += S[JKIPF] * ZI
-                        print(S[JKIPF])
             # 10
             print("___________")
-            RITE(2, N, N, 1, B)
+            print("B")
+            RITE(3, N, N, LA, B)
             print("___________")
             # print("B", B)
             # FORM MATRIX Q OF EIGENCOLUMNS AND STORE IN S(1,1,3)
             # OICOLT = (1, ICOL, 3)
             OICOLT = ICOL * N + 2 * N * N
             S = MOVE(N, B, 0, S, OICOLT)
-            RITE(2, N, N, 8, S)
             # FORM DIAGONAL MATRIX D WITH -1./ZERO AND STORE IN S(1,1,4)
             # ICOLICOLF = (ICOL, ICOL, 4)
             ICOLICOLF = ICOL + ICOL * N + 3 * N * N
@@ -1860,6 +1895,11 @@ def FACT(N, LA, A, ADJ, ZEROS, S, B):
             ICOLICOLO = ICOL + ICOL * N 
             print("ICOLICOLO", ICOLICOLO)
             S[ICOLICOLO] = 1.0
+            print("___________")
+            print("S")
+            RITE(4, N, N, LS, S)
+            print("___________")
+            print(".......")
         # 20 
         # FORM Q**-1 AND STORE IN S(1,1,5).
         # OOTW = (1, 1, 2)
@@ -1870,34 +1910,65 @@ def FACT(N, LA, A, ADJ, ZEROS, S, B):
         OOFO = 3 * N * N
         # OOFI = (1, 1, 5)
         OOFI = 4 * N * N
-        print(S.shape)
         S[OOFI: ] = MAINV_CPLX(N, S[OOTH: ], S[OOFI: ])
+        print("______________")
+        print("S")
+        RITE(4, N, N, LS, S)
+        print("______________")
+       
         # FORM Q*D*Q**-1 AND STORE IN S(1,1,2)
-        print(S.shape)
-        B = BRAINY(N, N, 1, S[OOTH: ], N, N, 1, S[OOFO: ], B)
+        print("______________")
+        print("Q")
+        RITE(1, N, N, 1, S[OOTH: ])
+        print("______________")
+        print("______________")
+        print("D")
+        RITE(1, N, N, 1, S[OOFO: ])
+        print("______________")
+        B[: N * N] = BRAINY(N, N, 1, S[OOTH: ], N, N, 1, S[OOFO: ], B[: N * N])
+        print("______________")
+        print("B apres Q D")
+        RITE(3, N, N, 3, B)
+        print("______________")
+        print("______________")
+        print("Q-1")
+        RITE(1, N, N, 1, S[OOFI: ])
+        print("______________")
+        
         S[OOTW: OOTW + N * N] = BRAINY(N, N, 1, B, N, N, 1, S[OOFI: ], S[OOTW: OOTW + N * N])
         print("______________")
-        RITE(2, N, N, 5, S)
+        print("S apres Q D Q-1")
+        RITE(4, N, N, LS, S)
         print("______________")
         # print("S[OOTW: ]", S[OOTW: ])
         # STORE MATRIX Q*D*Q**-1 IN B ARRAY.
         # I = NP - IP + 2
         I = NP - IP
-        print(I)
         OOI = I * N * N
-        # print("I, OOTW, OOI", I, OOTW, OOI)
+        print("I, OOTW, OOI", I, OOTW, OOI)
         B = MOVE(N * N, S, OOTW, B, OOI)
+        print("______________")
+        print("B")
+        RITE(3, N, N, 3, B)
+        print("______________")
         # NEW FACTOR = (I+Z*Q*D*Q**-1) = (I+Z*B)
         # FORM FACTOR*(PREVIOUS FACTORS*ADJUGATE) AND STORE IN S(1,1,6)
         # OOLPS = (1, 1, L + 6)
         OOLPS = (L + 5) * N * N
         # OOS = (1, 1, 6)
         OOS = 5 * N * N
-        # print("L, S.shape, OOLPS, OOS", L, S.shape, OOLPS, OOS)
+        print("L, S.shape, OOLPS, OOS", L, S.shape, OOLPS, OOS)
         # print(OOLPS + N * N * (L + 1))
         S[OOLPS: OOLPS + N * N * (L + 1)] = BRAINY(N, N, 2, S, N, N, L, S[OOS: ], S[OOLPS: OOLPS + N * N * (L + 1)])
+        print("____")
+        print("S avant MOVE")
+        RITE(4, N, N, LS, S)
+        print("____")
         S = MOVE(N * N * (L + 1), S, OOLPS, S, OOS)
-        RITE(2, N, N, 5, S)
+        print("____")
+        print("S")
+        RITE(4, N, N, LS, S)
+        print("____")
         print("-------------")
     # 30 
     B = MOVE(N * N, A, 0, B, 0)
