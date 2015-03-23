@@ -269,13 +269,18 @@ def WIENER_1(N, LX, X, M, LZ, Z, LR, LW, FLOOR, LF, F, E, LY, Y, S):
     IG = ICB + NN
     ICF = IG + MN * LR
     IGAM = ICF + MN
-    IH = IGAM + NN
+    IH = IGAM + MN
     IFGT = IH + M * M
     S[IH: IH + M * M] = HEAT(M, 1, LZ, Z, M, 1, LZ, Z, 1, S[IH: IH + M * M])
+    # print(Z, S[IH: IH + M * M])
     if (LW <= 1): 
         L = LR
+    print("LW, L, LR", LW, L, LR)
     IGZ = IG + MN * LW
     IRZ = IR + NN * LW
+    print("LW >= 1", (LW >= 1))
+    print("LW < LR", (LW < LR))
+    print("LW >= 1 & LW < LR", (LW >= 1) & (LW < LR))
     if ((LW >= 1) & (LW < LR)): 
         L = LW
     # if ((LW >= 1) & (LW < LR)) ZERO(MN * (LR - LW), S[IGZ])
@@ -283,10 +288,16 @@ def WIENER_1(N, LX, X, M, LZ, Z, LR, LW, FLOOR, LF, F, E, LY, Y, S):
     # if ((LW >= 1) & (LW < LR)) ZERO(NN * (LR - LW), S[IRZ])
         S[IRZ: ] = ZERO(NN * (LR - LW), S[IRZ: ])
     # if ((LW >= 1) & (LW >= LR)) L = LR
+    print("(LW >= 1) & (LW >= LR)", (LW >= 1) & (LW >= LR))
     if ((LW >= 1) & (LW >= LR)): 
         L = LR
+    print("LW, L, LR", LW, L, LR)
+
     S[IG: IG + M * N * L] = HEAT(M, 1, LZ, Z, N, 1, LX, X, L, S[IG: IG + M * N * L])
     S[IR: IR + M * N * L] = HEAT(N, 1, LX, X, N, 1, LX, X, L, S[IR: IR + M * N * L])
+    RITE(L, M, N, L, S[IG: IG + M * N * L])
+    RITE(L, M, N, L, S[IR: IR + M * N * L])
+    print("LW, L", LW, L)
     if ((LW <= 1) | (L <= 1)): 
         # GO TO 2
         pass
@@ -296,28 +307,33 @@ def WIENER_1(N, LX, X, M, LZ, Z, LR, LW, FLOOR, LF, F, E, LY, Y, S):
             IRK = IR + K * NN
             # WINDOW = 1.0 - float(K - 1) / float(LW - 1)
             WINDOW = 1.0 - float(K) / float(LW - 1)
+            print("WINDOW, K, LW - 1", WINDOW, K, LW - 1)
             S[IGK: IGK + MN] = SCALE(WINDOW, MN, S[IGK: IGK + MN])
             S[IRK: IRK + NN] = SCALE(WINDOW, NN, S[IRK: IRK + NN])
+    print("G")
+    RITE(3, M, N, LR, S[IG: IG + M * N * LR])
+    print("R")
+    RITE(3, M, N, LR, S[IR: IR + N * N * LR])
     # RECUR(N, M, LR, S[IH], S[IG], FLOOR, LF, F, E, S[IA], 
     #1S[IB], S[IAP], S[IBP], S[IVA], S[IVB], S[IDA], S[IDB], S[ICA], S[ICB], 
     #2S[ICF], S[IGAM], S[IFGT])
-    print("F.size", F.size)
+    # print("F.size", F.size)
     (LF, F, E, S[IA: IA + N * N * LR], S[IB: IB + N * N * LR], 
         S[IAP: IAP + N * N * LR], S[IBP: IBP + N * N * LR], 
         S[IVA: IVA + N * N], S[IVB: IVB + N * N], S[IDA: IDA + N * N], 
-        S[IDB: IDB + N * N], S[IGAM: IGAM + M * N], S[IFGT: IFGT + M * M]) = RECUR(N, M, LR, S[IR: IR + N * N * LR], S[IH : IH + M * M], S[IG : IG + M * N * LR], FLOOR, 
+        S[IDB: IDB + N * N], S[IGAM: IGAM + M * N], S[IFGT: IFGT + M * M]) = RECUR(N, M, LR, S[IR: IR + N * N * LR], S[IH: IH + M * M], S[IG : IG + M * N * LR], FLOOR, 
         LF, F, E, S[IA: IA + N * N * LR], S[IB: IB + N * N * LR],  
         S[IAP: IAP + N * N * LR], S[IBP: IBP + N * N * LR], S[IVA: IVA + N * N], S[IVB: IVB + N * N], S[IDA: IDA + N * N], S[IDB: IDB + N * N], 
         S[ICA: ICA + N * N], S[ICB: ICB + N * N], S[ICF: ICF + M * N], 
         S[IGAM: IGAM + M * N], S[IFGT: IFGT + M * M])
-    print("F.size", F.size)
+    # print("F.size", F.size)
     LY = LX + LF - 1
-    print("F.size", F.size)
-    print("X.size", X.size)
-    print("Y.size", Y.size)
-    print("M, N, LF, LX, LY", M, N, LF, LX, LY)
+    # print("F.size", F.size)
+    #print("X.size", X.size)
+    #print("Y.size", Y.size)
+    #print("M, N, LF, LX, LY", M, N, LF, LX, LY)
+    Y = numpy.zeros(M * N * (LX + LY - 1))
     Y = BRAINY(M, N, LF, F, N, 1, LX, X, Y)
-    print(Y.size)
     return (LF, F, E, LY, Y, S) 
 #_______________________________________________________________________________
 #_______________________________________________________________________________
@@ -333,31 +349,30 @@ def RECUR(N, M, LR, R, H, G, FLOOR, LF, F, E,
     A = ZERO(N * N * LR, A)
     B = ZERO(N * N * LR, B)
     F = ZERO(N * N * LR, F)
-    print("F", F)
+    # print("F", F)
     for I in range(N): 
         for J in range(N): 
-            IJ = I + N * J
-            IJO = I + N * J 
+            IJ = I + J * N
+            IJO = I + J * N 
             VA[IJ] = R[IJO]
+            VB[IJ] = R[IJO]
         IIO = I + I * N
         A[IIO] = 1.
         B[IIO] = 1.
-    print("G.size", G.size)
     F[: M * N] = SIMEQ1(M, N, F, R, G[: M * N])
-    print("G.size after SIMEQ1", G.size)
     LF = 1
     FGT[: M * M] = HEAT(M, N, 1, F, M, N, 1, G, 1, FGT[: M * M])
-    print("F, G, FGT, H", F, G, FGT, H)
-    print("FGT.size, H.size, M", FGT.size, H.size, M)
     E[0] = 1.0 - SPUR(M, FGT) / SPUR(M, H)
+    print("E[0], LF, LR", E[0], LF, LR) 
     if (E[0] <= FLOOR):
         return (LF, F, E, A, B, AP, BP, VA, VB, DA, DB, GAM, FGT)
     if (LR == 1): 
         return (LF, F, E, A, B, AP, BP, VA, VB, DA, DB, GAM, FGT)
     for L in range(1, LR): 
+        print("L", L)
         DA = ZERO(N * N, DA)
         OOL = L * M * N 
-        print("M * N, G.size, OOL, GAM.size", M * N, G.size, OOL, GAM.size)
+        # print("M * N, G.size, OOL, GAM.size", M * N, G.size, OOL, GAM.size)
         GAM = MOVE(M * N, G, OOL, GAM, 0)
         for I in range(N): 
             for LI in range(L): 
@@ -380,11 +395,14 @@ def RECUR(N, M, LR, R, H, G, FLOOR, LF, F, E,
                 JI = J + I * N
                 DB[JI] = DA[IJ]
         # 5 end for I 
+        print("VA, VB", VA, VB)
+        print("DA, DB", DA, DB)
         CA[: N * N] = SIMEQ1(N, N, CA, VB, DA[: N * N])
         CB[: N * N] = SIMEQ1(N, N, CB, VA, DB[: N * N])
         print("CA, CB", CA, CB)
         AP = MOVE(N * N * L, A, 0, AP, 0)
         BP = MOVE(N * N * L, B, 0, BP, 0)
+        print("VA, VB", VA, VB) 
         for J in range(N): 
             for K in range(N): 
                 KJ = K + J * N
@@ -403,8 +421,15 @@ def RECUR(N, M, LR, R, H, G, FLOOR, LF, F, E,
                     IK = I + K * N 
                     VA[IJ] -= CA[IK] * DB[KJ]
                     VB[IJ] -= CB[IK] * DA[KJ]
+        print("VA, VB", VA, VB) 
         # 7 end for J 
-        CF[: M * N] = SIMEQ1(M, N, CF, VB, GAM[: M * N])
+        print("CF, VB, GAM", CF, VB, GAM)
+        RITE(1, M, N, 1, GAM)
+        # print(CF.size)
+        # CF[: M * N] = SIMEQ1(M, N, CF, VB, GAM[: M * N])
+        CF[: M * N] = SIMEQ1(M, N, CF, VB, GAM)
+        # print(CF.size)
+        print("F, CF, B", F, CF, B)
         for LI in range(L): 
             # LD = L - LI + 1
             LD = L - LI - 1
@@ -418,13 +443,13 @@ def RECUR(N, M, LR, R, H, G, FLOOR, LF, F, E,
                         F[IJLI] += CF[IK] * B[KJLD]
         # 8 end for LI, J, K, I
         #print("_____")
-        #print("F, G, FGT", F, G, FGT)
+        print("F, G, H, FGT", F, G, H, FGT)
         FGT[: M * M] = HEAT(M, N, L, F, M, N, L, G, 1, FGT[: M * M])
         E[L] = 1.0 - SPUR(M, FGT) / SPUR(M, H)
         LF = L
-        #print("FGT, H", FGT, H)
-        #print("_____")
-        print("L, E[L], spur1, spur2", L, E[L], SPUR(M, FGT), SPUR(M, H))
+        # print("FGT, H", FGT, H)
+        # print("_____")
+        # print("L, E[L], spur1, spur2", L, E[L], SPUR(M, FGT), SPUR(M, H))
         if (E[L] <= FLOOR):
             print("E[L] <= FLOOR")
             return (LF, F, E, A, B, AP, BP, VA, VB, DA, DB, GAM, FGT)
@@ -1492,15 +1517,15 @@ def SIMEQ1(M, N, A, B, C):
 #    print(B)
     S = numpy.empty((N * N, ))
     S = MAINE(N, B, S)
-#    print(S)
+    # print("B, S", B, S)
     A = numpy.zeros((M * N, ))
     for I in range(M): 
         for J in range(N):
-            IJ = J * M + I
+            IJ = I + J * M
             A[IJ] = 0.0
             for K in range(N): 
-                IK = K * M + I
-                KJ = J * N + K
+                IK = I + K * M
+                KJ = K + J * N
 #                print((I, K, J, IK, KJ, IJ))
                 A[IJ] += C[IK] * S[KJ]
 #    B = MOVE(N * N, S, B)
@@ -1742,9 +1767,12 @@ def MAINE(N, A, B):
     for I in range(1, NN):
         B[I] = 0.0
     for M in range(1, N):
-        K = M - 1
+        # K = M - 1
+        K = M
+        # MM = M + (M - 1) * N
         MM = M + M * N
         EK = A[MM]
+        # print("A", A)
         for I in range(K): 
             for J in range(K):
                 MI = M + I * N
@@ -1767,10 +1795,10 @@ def MAINE(N, A, B):
                 MJ = M + J * N
                 IJ = I + J * N
                 B[IJ] += B[IM] * B[MJ] * EK
-        print("--")
-        print("M", M)
-        RITE(1, N, N, 1, B)
-        print("--")
+        # print("--")
+        # print("M", M)
+        # RITE(1, N, N, 1, B)
+        # print("--")
     return B 
 #_______________________________________________________________________________
 #_______________________________________________________________________________
@@ -1910,8 +1938,8 @@ def BRAINY(NRA, NCA, LA, A, NRB, NCB, LB, B, C):
     """
     LC = LA + LB - 1
     # ZERO(NRA*NRB*LC, C)
-    print("LA, LB, LC, NRA, NCB, LC", LA, LB, LC, NRA, NCB, LC)
-    print("A.shape, B.shape", A.shape, B.shape)
+    # print("LA, LB, LC, NRA, NCB, LC", LA, LB, LC, NRA, NCB, LC)
+    # print("A.shape, B.shape", A.shape, B.shape)
     C = ZERO(NRA * NCB * LC, C)
     for I in range(LA):
         for J in range(LB): 
