@@ -26,6 +26,7 @@ def MOD(a, b):
     return r 
 ABS = numpy.abs
 CABS = numpy.abs
+FLOAT = numpy.float
 REAL = numpy.real
 AIMAG = numpy.imag
 CSQRT = numpy.sqrt
@@ -455,11 +456,180 @@ def RECUR(N, M, LR, R, H, G, FLOOR, LF, F, E,
             return (LF, F, E, A, B, AP, BP, VA, VB, DA, DB, GAM, FGT)
     # 9 end for L
     return (LF, F, E, A, B, AP, BP, VA, VB, DA, DB, GAM, FGT)
-
-            
-            
-        
-                       
+#_______________________________________________________________________________
+#_______________________________________________________________________________
+def WIENER_2(): 
+    """
+    WIENER_2
+    
+    p.256
+    """
+    # VERSION 2 OF SUBROUTINE WIENER
+    # DIMENSION X(N,LX),Z(M,LZ),F(M,N,LR)
+    # DIMENSION E(LR),Y(M,LY),S(NN*5*LR+MN*LR+M*M)
+    # DIMENSION X(1),Z(1),F(1),E(1),Y(1),S(1)
+    MN = M * N
+    NN = N * N
+    IR = NN * (LR - 1) + 1
+    IG = 5 * NN * LR + 1
+    IH = IG + MN * LR
+    S[IH - 1:] = HEAT(M, 1, LZ, Z, M, 1, LZ, Z, 1, S[IH - 1:])
+    if (LW <= 1): 
+        L = LR
+    IGZ = IG + MN * LW
+    IRZ = IR + NN * LW
+    if (LW > 1) & (LW < LR): 
+        S[IGZ - 1: ] = ZERO(MN * (LR - LW), S[IGZ - 1: ])
+        S[IRZ - 1: ] = ZERO(NN * (LR - LW), S[IRZ - 1: ])
+        L = LW
+    if (LW > 1) & (LW >= LR):
+        L = LR
+    S[IG - 1: ] = HEAT(M, 1, LZ, Z, N, 1, LX, X, L S[IG - 1: ])
+    S[IR - 1: ] = HEAT(N, 1, LX, X, N, 1, LX, X, L S[IR - 1: ])        
+    if (LW <= 1) | (L <= 1):
+        # GO TO 2
+        pass
+    else:
+        for K in range(2, L + 1): 
+            IGK = IG + MN * (K - 1)
+            IRK = IR + NN * (K - 1)
+            WINDOW = 1.0 - FLOAT(K - 1) / FLOAT(LW - 1)
+            S[IGK - 1: ] = SCALE(WINDOW, MN, S[IGK - 1: ])
+            S[IRK - 1: ] = SCALE(WINDOW, MN, S[IRK - 1: ])
+    (LF, F, E, S) = RECUR2(N, M, LR, S, S[IH - 1: ], S[IG - 1: ], FLOOR, LF, F, E)
+    LY = LX + LF - 1
+    Y = BRAINY(M, N, LF, F, N, 1, LX, X, Y)
+    return (LF, F, E, LY, Y, S)  
+#_______________________________________________________________________________
+#_______________________________________________________________________________
+def RECUR2(N, M, LR, R, H, G, FLOOR, LF, F, E): 
+    """
+    RECUR2 
+    
+    used by WIENER_2
+    """
+    # NMAX = LARGEST VALUE OF N TO BE PROCESSED
+    # NNMAX = NMAX * NMAX 
+    # NONDUMMY DIMENSION VF(NNMAX),VB(NNMAX),
+    #1FGT(NNMAX)
+    # FOR EXAMPLE, IF NMAX=5 THEN 
+    # DIMENSION VF(25),VB(25),FGT(25)
+    # DIMENSION R(N,N,LR),H(M,M),G(M,N,LR),F(M,N,LR),E(LR)
+    NN = N * N
+    NNLR = NN * LR
+    ISP = 2 * LR + 1
+    IAF = ISP + LR
+    IAB = IAF + LR
+    for L in range(2, LR + 1): 
+        JP = LR + L - 1
+        JM = LR - L + 1
+        for J in range(1, M + 1): 
+            for K in range(1, M + 1):
+                JKJM = J - 1 + (K - 1) * M + (JM - 1) * M * M
+                KJJP = K - 1 + (J - 1) * M + (JP - 1) * M * M
+                R[JKJM] = R[KJJP]
+    # 1
+    for L in range(1, LR + 1): 
+        JM = LR - L + 1
+        OOJM = (JM - 1) * M * M
+        OOIAF = (IAF - 1) * M * M
+        OOIAB = (IAB - 1) * M * M
+        OOISP = (ISP - 1) * M * M
+        OOL = (L - 1) * M * M
+        (R[OOIAF: ], R[OOIAB: ], VF, VB, R[OOISP: ]) = SPIRIT(N, L, R[OOJM: ], R[OOIAF: ], R[OOIAB: ], VF, VB, R[OOISP: ])
+        (R[OOJM: ], R[OOIAB: ], VB, G[OOL: ], A) = ORACLE(M, N, L, R[OOJM: ], R[OOIAB: ], VB, G[OOL: ], F)
+        FGT = HEAT(M, N, L, F, M, N, L, G, A, FGT)
+        E[L - 1] = 1.0 - SPUR(M, FGT)  / SPUR(M, H)
+        LF = L
+        if (E[L - 1] <= FLOOR): 
+            break
+    # 2 end for L
+    return (LF, F, E, S)
+#_______________________________________________________________________________
+#_______________________________________________________________________________
+def SPIRIT(N, L, R, AF, AB, VF, VB, SP): 
+    """
+    SPIRIT
+    
+    used by WIENER_2
+    """
+    # NMAX = LARGEST VALUE OF N TO BE PROCESSED
+    # NNMAX = NMAX * NMAX 
+    # NONDUMMY DIMENSION DF(NNMAX),DB(NNMAX),
+    #1CF(NNMAX),CB(NNMAX)
+    # FOR EXAMPLE, IF NMAX=5 THEN 
+    # DIMENSION DF(25),DB(25),CF(25),CB(25)
+    # DIMENSION R(N,N,2*L-1)
+    # DIMENSION AF(N,N,L),AB(N,N,L),VF(N,N),VB(N,N),R(N,N,1),
+    # SP(N,N,L)
+    if (L != 1) : 
+        # GO TO 20
+        pass
+    else: 
+        VF = MOVE(N * N, R, 0, VF, 0)
+        VB = MOVE(N * N, R, 0, VB, 0)
+        AF = ZERO(N * N, AF)
+        for I in range(1, N + 1):
+            IIO = I - 1 + (I - 1) * N 
+            AF[IIO] = 1.
+        AB = MOVE(N * N, AF, 0, AB, 0)
+        return (AF, AB, VF, VB, SP)
+    # 20
+    OOLPO = L * N * N
+    DB = HEAT(N, N, L - 1, AB, N, N, L - 1, R[OOLPO: ], 1, DB)
+    for I in range(1, N + 1): 
+        for J in range(1, N + 1): 
+            IJ = J - 1 + (I - 1) * N
+            JI = I - 1 + (J - 1) * N
+            DF[IJ] = DB[JI]
+    # 30
+    SP = MAINE(N, VB, SP)
+    CF = BRAINY(N, N, 1, DF, N, N, 1, SP, CF)
+    SP = MAINE(N, VF, SP)
+    CB = BRAINY(N, N, 1, DB, N, N, 1, SP, CB)
+    OOT = N * N
+    SP = MOVE(N * N * (L - 1), AB, 0, SP, OOT)
+    SP = ZERO(N * N, SP)
+    AB = MOVE(N * N * L, SP, AB)
+    OOL = (L - 1) * N * N
+    AF[OOL: ] = ZERO(N * N, AF[OOL: ])
+    AB = FORM(N, N, L, AB, CB, AF)
+    AF = FORM(N, N, L, AF, CF, SP)
+    VF = FORM(N, N, 1, VF, CF, DB)
+    VB = FORM(N, N, 1, VB, CB, DF)
+    return (AF, AB, VF, VB, SP)
+#_______________________________________________________________________________
+#_______________________________________________________________________________
+def ORACLE(M, N, L, R, AB, VB, G, A): 
+    """
+    ORACLE
+    
+    used by WIENER_2
+    """
+    # NMAX = LARGEST VALUE OF N TO BE PROCESSED
+    # NNMAX = NMAX * NMAX 
+    # NONDUMMY DIMENSION VBI(NNMAX),C(NNMAX),
+    # FOR EXAMPLE, IF NMAX=5 THEN 
+    # DIMENSION VBI(25),C(25)
+    # DIMENSION R(N,N,2*L-1)
+    # DIMENSION R(N,N,1),AB(N,N,L),VB(N,N),G(M,N),A(M,N,L),
+    if (L == 1): 
+        A[: M * N] = ZERO(M * N, A[: M * N])
+    else: 
+        OOL = (L - 1) * M * N
+        A[OOL: ] = HEAT(M, N, L - 1, A, N, N, L - 1, R, 1, A[OOL: ])
+    for I in range(M): 
+        for J in range(N): 
+            IJL = I - 1 + (J - 1) * M + (L - 1) * M * N
+            IJ = I - 1 + (J - 1) * M
+            A[IJL] -= G[IJ] 
+    # 10 
+    VBI = MAINE(N, VB, VBI)
+    OOL = (L - 1) * M * N
+    C = BRAINY(M, N, 1, A[OOL:, ], N, N, 1, VBI, C)
+    A[OOL: ] = ZERO(M * N, A[OOL: ])
+    A = FORM(M, N, L, A, C, AB)
+    return (R, AB, VB, G, A) 
 #_______________________________________________________________________________
 #_______________________________________________________________________________
 def ZERO(LX, X):

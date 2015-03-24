@@ -255,9 +255,9 @@ def WIENER_1(N, LX, X, M, LZ, Z, LR, LW, FLOOR, LF, F, E, LY, Y, S):
     NNLR = NN * LR
     MN = M * N
     # IR = 1
-    IR = 0
+    IR = 1
     # IA = 1 + NNLR
-    IA = NNLR
+    IA = 1 + NNLR
     IB = IA + NNLR
     IAP = IB + NNLR
     IBP = IAP + NNLR
@@ -272,67 +272,58 @@ def WIENER_1(N, LX, X, M, LZ, Z, LR, LW, FLOOR, LF, F, E, LY, Y, S):
     IGAM = ICF + MN
     IH = IGAM + MN
     IFGT = IH + M * M
-    S[IH: IH + M * M] = HEAT(M, 1, LZ, Z, M, 1, LZ, Z, 1, S[IH: IH + M * M])
+    S[IH - 1: ] = HEAT(M, 1, LZ, Z, M, 1, LZ, Z, 1, S[IH - 1: ])
     # print(Z, S[IH: IH + M * M])
     if (LW <= 1): 
         L = LR
-    print("LW, L, LR", LW, L, LR)
     IGZ = IG + MN * LW
     IRZ = IR + NN * LW
-    print("LW >= 1", (LW >= 1))
-    print("LW < LR", (LW < LR))
-    print("LW >= 1 & LW < LR", (LW >= 1) & (LW < LR))
-    if ((LW >= 1) & (LW < LR)): 
+    if ((LW > 1) & (LW < LR)): 
         L = LW
-    # if ((LW >= 1) & (LW < LR)) ZERO(MN * (LR - LW), S[IGZ])
-        S[IGZ: ] = ZERO(MN * (LR - LW), S[IGZ: ])
-    # if ((LW >= 1) & (LW < LR)) ZERO(NN * (LR - LW), S[IRZ])
-        S[IRZ: ] = ZERO(NN * (LR - LW), S[IRZ: ])
-    # if ((LW >= 1) & (LW >= LR)) L = LR
-    print("(LW >= 1) & (LW >= LR)", (LW >= 1) & (LW >= LR))
-    if ((LW >= 1) & (LW >= LR)): 
+        S[IGZ - 1: ] = ZERO(MN * (LR - LW), S[IGZ - 1: ])
+        S[IRZ - 1: ] = ZERO(NN * (LR - LW), S[IRZ - 1: ])
+    if ((LW > 1) & (LW >= LR)): 
         L = LR
-    print("LW, L, LR", LW, L, LR)
-
-    S[IG: IG + M * N * L] = HEAT(M, 1, LZ, Z, N, 1, LX, X, L, S[IG: IG + M * N * L])
-    S[IR: IR + M * N * L] = HEAT(N, 1, LX, X, N, 1, LX, X, L, S[IR: IR + M * N * L])
-    RITE(L, M, N, L, S[IG: IG + M * N * L])
-    RITE(L, M, N, L, S[IR: IR + M * N * L])
-    print("LW, L", LW, L)
+    # S[IG: IG + M * N * L] = HEAT(M, 1, LZ, Z, N, 1, LX, X, L, S[IG: IG + M * N * L])
+    S[IG - 1: ] = HEAT(M, 1, LZ, Z, N, 1, LX, X, L, S[IG - 1: ])
+    # S[IR: IR + M * N * L] = HEAT(N, 1, LX, X, N, 1, LX, X, L, S[IR: IR + M * N * L])
+    S[IR - 1: ] = HEAT(N, 1, LX, X, N, 1, LX, X, L, S[IR - 1: ])
+    # RITE(L, M, N, L, S[IG - 1: ])
+    # RITE(L, M, N, L, S[IR - 1: ])
+    # print("LW, L", LW, L)
     if ((LW <= 1) | (L <= 1)): 
         # GO TO 2
         pass
     else:
-        for K in range(1, L):
+        for K in range(2, L + 1):
             IGK = IG + K * MN
             IRK = IR + K * NN
             # WINDOW = 1.0 - float(K - 1) / float(LW - 1)
             WINDOW = 1.0 - float(K) / float(LW - 1)
             print("WINDOW, K, LW - 1", WINDOW, K, LW - 1)
-            S[IGK: IGK + MN] = SCALE(WINDOW, MN, S[IGK: IGK + MN])
-            S[IRK: IRK + NN] = SCALE(WINDOW, NN, S[IRK: IRK + NN])
-    print("G")
-    RITE(3, M, N, LR, S[IG: IG + M * N * LR])
-    print("R")
-    RITE(3, M, N, LR, S[IR: IR + N * N * LR])
+            # S[IGK: IGK + MN] = SCALE(WINDOW, MN, S[IGK: IGK + MN])
+            # S[IRK: IRK + NN] = SCALE(WINDOW, NN, S[IRK: IRK + NN])
+            S[IGK - 1: ] = SCALE(WINDOW, MN, S[IGK - 1: ])
+            S[IRK - 1: ] = SCALE(WINDOW, NN, S[IRK - 1: ])
+        # 1 end for K
+    # 2 
+    # 
+    # print("G")
+    # RITE(3, M, N, LR, S[IG - 1: ])
+    # print("R")
+    # RITE(3, M, N, LR, S[IR - 1: ])
     # RECUR(N, M, LR, S[IH], S[IG], FLOOR, LF, F, E, S[IA], 
     #1S[IB], S[IAP], S[IBP], S[IVA], S[IVB], S[IDA], S[IDB], S[ICA], S[ICB], 
     #2S[ICF], S[IGAM], S[IFGT])
     # print("F.size", F.size)
-    (LF, F, E, S[IA: IA + N * N * LR], S[IB: IB + N * N * LR], 
-        S[IAP: IAP + N * N * LR], S[IBP: IBP + N * N * LR], 
-        S[IVA: IVA + N * N], S[IVB: IVB + N * N], S[IDA: IDA + N * N], 
-        S[IDB: IDB + N * N], S[IGAM: IGAM + M * N], S[IFGT: IFGT + M * M]) = RECUR(N, M, LR, S[IR: IR + N * N * LR], S[IH: IH + M * M], S[IG : IG + M * N * LR], FLOOR, 
-        LF, F, E, S[IA: IA + N * N * LR], S[IB: IB + N * N * LR],  
-        S[IAP: IAP + N * N * LR], S[IBP: IBP + N * N * LR], S[IVA: IVA + N * N], S[IVB: IVB + N * N], S[IDA: IDA + N * N], S[IDB: IDB + N * N], 
-        S[ICA: ICA + N * N], S[ICB: ICB + N * N], S[ICF: ICF + M * N], 
-        S[IGAM: IGAM + M * N], S[IFGT: IFGT + M * M])
+    # (LF, F, E, S[IA: IA + N * N * LR], S[IB: IB + N * N * LR], S[IAP: IAP + N * N * LR], S[IBP: IBP + N * N * LR], S[IVA: IVA + N * N], S[IVB: IVB + N * N], S[IDA: IDA + N * N], S[IDB: IDB + N * N], S[IGAM: IGAM + M * N], S[IFGT: IFGT + M * M]) = RECUR(N, M, LR, S[IR: IR + N * N * LR], S[IH: IH + M * M], S[IG : IG + M * N * LR], FLOOR, LF, F, E, S[IA: IA + N * N * LR], S[IB: IB + N * N * LR], S[IAP: IAP + N * N * LR], S[IBP: IBP + N * N * LR], S[IVA: IVA + N * N], S[IVB: IVB + N * N], S[IDA: IDA + N * N], S[IDB: IDB + N * N], S[ICA: ICA + N * N], S[ICB: ICB + N * N], S[ICF: ICF + M * N], S[IGAM: IGAM + M * N], S[IFGT: IFGT + M * M])
+    (LF, F, E, S[IA - 1: ], S[IB - 1: ], S[IAP - 1: ], S[IBP - 1: ], S[IVA - 1: ], S[IVB - 1: ], S[IDA - 1: ], S[IDB - 1: ], S[IGAM - 1: ], S[IFGT - 1: ]) = RECUR(N, M, LR, S, S[IH - 1: ], S[IG - 1: ], FLOOR, LF, F, E, S[IA - 1: ], S[IB - 1: ], S[IAP - 1: ], S[IBP - 1: ], S[IVA - 1: ], S[IVB - 1: ], S[IDA - 1: ], S[IDB - 1: ], S[ICA - 1: ], S[ICB - 1: ], S[ICF - 1: ], S[IGAM - 1: ], S[IFGT - 1: ])
     # print("F.size", F.size)
     LY = LX + LF - 1
     # print("F.size", F.size)
-    #print("X.size", X.size)
-    #print("Y.size", Y.size)
-    #print("M, N, LF, LX, LY", M, N, LF, LX, LY)
+    # print("X.size", X.size)
+    # print("Y.size", Y.size)
+    # print("M, N, LF, LX, LY", M, N, LF, LX, LY)
     Y = numpy.zeros(M * N * (LX + LY - 1))
     Y = BRAINY(M, N, LF, F, N, 1, LX, X, Y)
     return (LF, F, E, LY, Y, S) 
@@ -351,114 +342,118 @@ def RECUR(N, M, LR, R, H, G, FLOOR, LF, F, E,
     B = ZERO(N * N * LR, B)
     F = ZERO(N * N * LR, F)
     # print("F", F)
-    for I in range(N): 
-        for J in range(N): 
-            IJ = I + J * N
-            IJO = I + J * N 
+    for I in range(1, N + 1): 
+        for J in range(1, N + 1): 
+            IJ = I - 1 + (J - 1) * N
+            IJO = I - 1 + (J - 1) * N 
             VA[IJ] = R[IJO]
             VB[IJ] = R[IJO]
-        IIO = I + I * N
+        # 1
+        IIO = I - 1 + (I - 1) * N
         A[IIO] = 1.
         B[IIO] = 1.
+    # 2 
     F[: M * N] = SIMEQ1(M, N, F, R, G[: M * N])
     LF = 1
     FGT[: M * M] = HEAT(M, N, 1, F, M, N, 1, G, 1, FGT[: M * M])
     E[0] = 1.0 - SPUR(M, FGT) / SPUR(M, H)
-    print("E[0], LF, LR", E[0], LF, LR) 
+    # print("E[0], LF, LR", E[0], LF, LR) 
     if (E[0] <= FLOOR):
         return (LF, F, E, A, B, AP, BP, VA, VB, DA, DB, GAM, FGT)
     if (LR == 1): 
         return (LF, F, E, A, B, AP, BP, VA, VB, DA, DB, GAM, FGT)
-    for L in range(1, LR): 
-        print("L", L)
+    for L in range(2, LR + 1): 
+        # print("L", L)
         DA = ZERO(N * N, DA)
-        OOL = L * M * N 
+        OOL = (L - 1) * M * N 
         # print("M * N, G.size, OOL, GAM.size", M * N, G.size, OOL, GAM.size)
         GAM = MOVE(M * N, G, OOL, GAM, 0)
-        for I in range(N): 
-            for LI in range(L): 
+        for I in range(1, N + 1): 
+            for LI in range(1, L + 1): 
                 # LD = L - LI + 1
-                LD = L - LI - 1
-                for K in range(N):
-                    for J in range(N): 
-                        IJ = I + J * N
-                        IKLI = I + K * N + LI * N * N
-                        KJLD = K + J * N + LD * N * N 
+                LD = L - LI + 1
+                for K in range(1, N + 1):
+                    for J in range(1, N + 1): 
+                        IJ = I - 1 + (J - 1) * N
+                        IKLI = I - 1 + (K - 1) * N + (LI - 1) * N * N
+                        KJLD = K - 1 + (J - 1) * N + (LD - 1) * N * N 
                         DA[IJ] -= A[IKLI] * R[KJLD]
-                    for J in range(M): 
-                        JI = J + I * M
-                        JKLI = J + K * M + LI * M * N
-                        KILD = K + I * M + LD * M * N
+                    # 3 end for J
+                    for J in range(1, M + 1): 
+                        JI = J - 1 + (I - 1) * M
+                        JKLI = J - 1 + (K - 1) * M + (LI - 1) * M * N
+                        KILD = K - 1 + (I - 1) * N + (LD - 1) * N * N
                         GAM[JI] -= F[JKLI] * R[KILD]
-            # 4 end for LI
-            for J in range(N):
-                IJ = I + J * N
-                JI = J + I * N
+            # 4 end for J, K, LI
+            for J in range(1, N + 1):
+                IJ = I - 1 + (J - 1) * N
+                JI = J - 1 + (I - 1) * N
                 DB[JI] = DA[IJ]
-        # 5 end for I 
-        print("VA, VB", VA, VB)
-        print("DA, DB", DA, DB)
+        # 5 end for J, I 
+        # 
+        # print("VA, VB", VA, VB)
+        # print("DA, DB", DA, DB)
         CA[: N * N] = SIMEQ1(N, N, CA, VB, DA[: N * N])
         CB[: N * N] = SIMEQ1(N, N, CB, VA, DB[: N * N])
-        print("CA, CB", CA, CB)
+        # print("CA, CB", CA, CB)
         AP = MOVE(N * N * L, A, 0, AP, 0)
         BP = MOVE(N * N * L, B, 0, BP, 0)
-        print("VA, VB", VA, VB) 
-        for J in range(N): 
-            for K in range(N): 
-                KJ = K + J * N
-                for LI in range(L): 
+        # print("VA, VB", VA, VB) 
+        for J in range(1, N + 1): 
+            for K in range(1, N + 1): 
+                KJ = K - 1 + (J - 1) * N
+                for LI in range(1, L + 1): 
                     # LD = L - LI + 1
-                    LD = L - LI - 1
-                    KJLD = K + J * N + LD * N * N
-                    for I in range(N): 
-                        IJLI = I + J * N + LI * N * N
-                        IK = I + K * N
+                    LD = L - LI + 1
+                    KJLD = K - 1 + (J - 1) * N + (LD - 1) * N * N
+                    for I in range(1, N + 1): 
+                        IJLI = I - 1 + (J - 1) * N + (LI - 1) * N * N
+                        IK = I - 1 + (K - 1) * N
                         A[IJLI] += CA[IK] * BP[KJLD]
                         B[IJLI] += CB[IK] * AP[KJLD]
-                # 6 end LI, I
-                for I in range(N): 
-                    IJ = I + J * N
-                    IK = I + K * N 
+                # 6 end for I, LI
+                for I in range(1, N + 1): 
+                    IJ = I - 1 + (J - 1) * N
+                    IK = I - 1 + (K - 1) * N 
                     VA[IJ] -= CA[IK] * DB[KJ]
                     VB[IJ] -= CB[IK] * DA[KJ]
-        print("VA, VB", VA, VB) 
-        # 7 end for J 
-        print("CF, VB, GAM", CF, VB, GAM)
-        RITE(1, M, N, 1, GAM)
+        # 7 end for I, K, J
+        #
+        # print("CF, VB, GAM", CF, VB, GAM)
+        # RITE(1, M, N, 1, GAM)
         # print(CF.size)
         # CF[: M * N] = SIMEQ1(M, N, CF, VB, GAM[: M * N])
         CF[: M * N] = SIMEQ1(M, N, CF, VB, GAM)
         # print(CF.size)
-        print("F, CF, B", F, CF, B)
-        for LI in range(L): 
+        # print("F, CF, B", F, CF, B)
+        for LI in range(1, L + 1): 
             # LD = L - LI + 1
-            LD = L - LI - 1
-            for J in range(N): 
-                for K in range(N): 
-                    KJLD = K + J * N + LD * N * N
-                    for I in range(M):
-                        IJLI = I + J * M + LI * M * N
-                        IK = I + K * M
+            LD = L - LI + 1
+            for J in range(1, N + 1): 
+                for K in range(1, N + 1): 
+                    KJLD = K - 1 + (J - 1) * N + (LD - 1) * N * N
+                    for I in range(1, M + 1):
+                        IJLI = I - 1 + (J - 1) * M + (LI - 1) * M * N
+                        IK = I - 1 + (K - 1) * M
                         # print("CF, B", CF, B)
                         F[IJLI] += CF[IK] * B[KJLD]
-        # 8 end for LI, J, K, I
-        #print("_____")
-        print("F, G, H, FGT", F, G, H, FGT)
+        # 8 end for I, K, J, LI
+        # print("_____")
+        # print("F, G, H, FGT", F, G, H, FGT)
         FGT[: M * M] = HEAT(M, N, L, F, M, N, L, G, 1, FGT[: M * M])
-        E[L] = 1.0 - SPUR(M, FGT) / SPUR(M, H)
+        E[L - 1] = 1.0 - SPUR(M, FGT) / SPUR(M, H)
         LF = L
         # print("FGT, H", FGT, H)
         # print("_____")
         # print("L, E[L], spur1, spur2", L, E[L], SPUR(M, FGT), SPUR(M, H))
-        if (E[L] <= FLOOR):
+        if (E[L - 1] <= FLOOR):
             print("E[L] <= FLOOR")
             return (LF, F, E, A, B, AP, BP, VA, VB, DA, DB, GAM, FGT)
     # 9 end for L
     return (LF, F, E, A, B, AP, BP, VA, VB, DA, DB, GAM, FGT)
 #_______________________________________________________________________________
 #_______________________________________________________________________________
-def WIENER_2(): 
+def WIENER_2(N, LX, X, M, LZ, Z, LR, LW, FLOOR, LF, F, E, LY, Y, S): 
     """
     WIENER_2
     
@@ -473,7 +468,7 @@ def WIENER_2():
     IR = NN * (LR - 1) + 1
     IG = 5 * NN * LR + 1
     IH = IG + MN * LR
-    S[IH - 1:] = HEAT(M, 1, LZ, Z, M, 1, LZ, Z, 1, S[IH - 1:])
+    S[IH - 1: ] = HEAT(M, 1, LZ, Z, M, 1, LZ, Z, 1, S[IH - 1: ])
     if (LW <= 1): 
         L = LR
     IGZ = IG + MN * LW
@@ -484,8 +479,8 @@ def WIENER_2():
         L = LW
     if (LW > 1) & (LW >= LR):
         L = LR
-    S[IG - 1: ] = HEAT(M, 1, LZ, Z, N, 1, LX, X, L S[IG - 1: ])
-    S[IR - 1: ] = HEAT(N, 1, LX, X, N, 1, LX, X, L S[IR - 1: ])        
+    S[IG - 1: ] = HEAT(M, 1, LZ, Z, N, 1, LX, X, L, S[IG - 1: ])
+    S[IR - 1: ] = HEAT(N, 1, LX, X, N, 1, LX, X, L, S[IR - 1: ])        
     if (LW <= 1) | (L <= 1):
         # GO TO 2
         pass
@@ -495,9 +490,12 @@ def WIENER_2():
             IRK = IR + NN * (K - 1)
             WINDOW = 1.0 - FLOAT(K - 1) / FLOAT(LW - 1)
             S[IGK - 1: ] = SCALE(WINDOW, MN, S[IGK - 1: ])
-            S[IRK - 1: ] = SCALE(WINDOW, MN, S[IRK - 1: ])
+            S[IRK - 1: ] = SCALE(WINDOW, NN, S[IRK - 1: ])
     (LF, F, E, S) = RECUR2(N, M, LR, S, S[IH - 1: ], S[IG - 1: ], FLOOR, LF, F, E)
     LY = LX + LF - 1
+    # print("LF")
+    # RITE(1, M, N, LF, F)
+    # print("M, N, LF, N, LX ", M, N, LF, N, LX)
     Y = BRAINY(M, N, LF, F, N, 1, LX, X, Y)
     return (LF, F, E, LY, Y, S)  
 #_______________________________________________________________________________
@@ -506,6 +504,7 @@ def RECUR2(N, M, LR, R, H, G, FLOOR, LF, F, E):
     """
     RECUR2 
     
+    p. 257
     used by WIENER_2
     """
     # NMAX = LARGEST VALUE OF N TO BE PROCESSED
@@ -514,6 +513,9 @@ def RECUR2(N, M, LR, R, H, G, FLOOR, LF, F, E):
     #1FGT(NNMAX)
     # FOR EXAMPLE, IF NMAX=5 THEN 
     # DIMENSION VF(25),VB(25),FGT(25)
+    VF = numpy.empty(25)
+    VB = numpy.empty(25)
+    FGT = numpy.empty(25)
     # DIMENSION R(N,N,LR),H(M,M),G(M,N,LR),F(M,N,LR),E(LR)
     NN = N * N
     NNLR = NN * LR
@@ -531,25 +533,27 @@ def RECUR2(N, M, LR, R, H, G, FLOOR, LF, F, E):
     # 1
     for L in range(1, LR + 1): 
         JM = LR - L + 1
-        OOJM = (JM - 1) * M * M
-        OOIAF = (IAF - 1) * M * M
-        OOIAB = (IAB - 1) * M * M
-        OOISP = (ISP - 1) * M * M
-        OOL = (L - 1) * M * M
+        OOJM = (JM - 1) * N * N
+        OOIAF = (IAF - 1) * N * N
+        OOIAB = (IAB - 1) * N * N
+        OOISP = (ISP - 1) * N * N
         (R[OOIAF: ], R[OOIAB: ], VF, VB, R[OOISP: ]) = SPIRIT(N, L, R[OOJM: ], R[OOIAF: ], R[OOIAB: ], VF, VB, R[OOISP: ])
+        OOL = (L - 1) * M * N
         (R[OOJM: ], R[OOIAB: ], VB, G[OOL: ], A) = ORACLE(M, N, L, R[OOJM: ], R[OOIAB: ], VB, G[OOL: ], F)
-        FGT = HEAT(M, N, L, F, M, N, L, G, A, FGT)
+        FGT = HEAT(M, N, L, F, M, N, L, G, 1, FGT)
         E[L - 1] = 1.0 - SPUR(M, FGT)  / SPUR(M, H)
         LF = L
         if (E[L - 1] <= FLOOR): 
-            break
+            return (LF, F, E, R)
     # 2 end for L
-    return (LF, F, E, S)
+    return (LF, F, E, R)
 #_______________________________________________________________________________
 #_______________________________________________________________________________
 def SPIRIT(N, L, R, AF, AB, VF, VB, SP): 
     """
     SPIRIT
+    
+    p. 257
     
     used by WIENER_2
     """
@@ -559,6 +563,10 @@ def SPIRIT(N, L, R, AF, AB, VF, VB, SP):
     #1CF(NNMAX),CB(NNMAX)
     # FOR EXAMPLE, IF NMAX=5 THEN 
     # DIMENSION DF(25),DB(25),CF(25),CB(25)
+    DF = numpy.empty(25)
+    DB = numpy.empty(25)
+    CF = numpy.empty(25)
+    CB = numpy.empty(25)
     # DIMENSION R(N,N,2*L-1)
     # DIMENSION AF(N,N,L),AB(N,N,L),VF(N,N),VB(N,N),R(N,N,1),
     # SP(N,N,L)
@@ -590,7 +598,7 @@ def SPIRIT(N, L, R, AF, AB, VF, VB, SP):
     OOT = N * N
     SP = MOVE(N * N * (L - 1), AB, 0, SP, OOT)
     SP = ZERO(N * N, SP)
-    AB = MOVE(N * N * L, SP, AB)
+    AB = MOVE(N * N * L, SP, 0, AB, 0)
     OOL = (L - 1) * N * N
     AF[OOL: ] = ZERO(N * N, AF[OOL: ])
     AB = FORM(N, N, L, AB, CB, AF)
@@ -611,6 +619,8 @@ def ORACLE(M, N, L, R, AB, VB, G, A):
     # NONDUMMY DIMENSION VBI(NNMAX),C(NNMAX),
     # FOR EXAMPLE, IF NMAX=5 THEN 
     # DIMENSION VBI(25),C(25)
+    VBI = numpy.empty(25)
+    C = numpy.empty(25)
     # DIMENSION R(N,N,2*L-1)
     # DIMENSION R(N,N,1),AB(N,N,L),VB(N,N),G(M,N),A(M,N,L),
     if (L == 1): 
@@ -618,8 +628,8 @@ def ORACLE(M, N, L, R, AB, VB, G, A):
     else: 
         OOL = (L - 1) * M * N
         A[OOL: ] = HEAT(M, N, L - 1, A, N, N, L - 1, R, 1, A[OOL: ])
-    for I in range(M): 
-        for J in range(N): 
+    for I in range(1, M + 1): 
+        for J in range(1, N + 1): 
             IJL = I - 1 + (J - 1) * M + (L - 1) * M * N
             IJ = I - 1 + (J - 1) * M
             A[IJL] -= G[IJ] 
@@ -2132,6 +2142,17 @@ def RITE(NB, M, N, L, A):
     RITE 
     
     p. 55
+    
+    This don't follow the code given in p. 55 but should produce the same result. 
+    
+    RITE(NB, M, N, L, A)
+    
+    NB = number of matrices printed per line = u 
+     M = number of rows in each matrix a_k
+     N = number of columns in each matrix a_k
+     L = number of matrices = q
+     A = (a_1, a_2, \dots, a_q) stored in multiplexed mode, i.e., stored as A(I,J,K) where I denotes the row, J denotes te column, and K denotes the matrix index. 
+    
     """
     i0 = 0
     while (i0 < L):
