@@ -1113,8 +1113,8 @@ def SHAPER(LB, B, LD, D, LA, A, LC, C, INDEX, ERRORS, S):
     
     p. 83
     """
-    print("LB", LB, "B", B, "LD", LD, "D", D, "LA", LA, "A", A, 
-        "LC", LC, "C", C, "INDEX", INDEX, "ERRORS", ERRORS, "S", S)
+    # print("LB", LB, "B", B, "LD", LD, "D", D, "LA", LA, "A", A, 
+    #     "LC", LC, "C", C, "INDEX", INDEX, "ERRORS", ERRORS, "S", S)
     LC = LA + LB - 1
     LCD = LC + LD - 1
     DD = DOT(LD, D, D)
