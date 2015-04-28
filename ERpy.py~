@@ -157,5 +157,33 @@ def MMTOND(N, LX, X):
     return Z
 #_______________________________________________________________________________
 #_______________________________________________________________________________
+def SPIKER(B, LA): 
+    """
+    """
+    LB = B.size
+    A = numpy.zeros(LA)
+    LC = LB + LA - 1
+    C = numpy.zeros(LC)
+    INDEX = 0
+    ERRORS = numpy.zeros(LC)
+    SPACE = numpy.zeros(3 * LA)
+    (A, LC, C, INDEX, ERRORS) = ER.SPIKER(LB, B, LA, A, LC, C, INDEX, ERRORS, SPACE)
+    return (A, C, INDEX, ERRORS)
+#_______________________________________________________________________________
+#_______________________________________________________________________________
+def SHAPER(B, D, LA): 
+    """
+    """
+    LB = B.size
+    LD = D.size
+    A = numpy.zeros(LA)
+    LC = LB + LA - 1
+    LCD = LC + LD - 1
+    C = numpy.zeros(LCD)
+    INDEX = 0
+    ERRORS = numpy.zeros(LCD)
+    SPACE = numpy.zeros(3 * LA)
+    (A, LC, C, INDEX, ERRORS, S) = ER.SHAPER(LB, B, LD, D, LA, A, LC, C, INDEX, ERRORS, SPACE)
+    return (A, C, INDEX, ERRORS)
 #_______________________________________________________________________________
 
