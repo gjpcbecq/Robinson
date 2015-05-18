@@ -202,4 +202,48 @@ def SHAPE(B, D, LA):
     (A, LC, C, ASE, SPACE) = ER.SHAPE(LB, B, LD, D, LA, A, LC, C, ASE,  SPACE)
     return (A, C, ASE)
 #_______________________________________________________________________________
+#_______________________________________________________________________________
+def MACRO(X, Y, LG): 
+    """
+    MACRO multicahnnel cross correlation
+    
+    X: (nDimX, nObsX)
+    Y: (nDimY, nObsY)
+    """
+    (N, LX, X) = NDTOMM(X)
+    (N, LY, Y) = NDTOMM(Y)
+    G = zeros((LG * N * N))
+    G = ER.MACRO(N, LX, X, LY, Y, LG, G)
+    return (G, N)
+#_______________________________________________________________________________
+#_______________________________________________________________________________
+def MACRO_partial(N, LG, G, I, J, K): 
+    """
+    MACRO_partial multichannel cross partial correlation
+    
+    G = MACRO(X, Y, LG)
+    
+    Example
+    
+    LG = 4
+    N = 3
+    G = array([
+        1., 0.9, 0.8, 0.7, 0.2, 0.3, 0.2, 0.1, 0.1, 0.1, 0.1, 0.1, 
+        0.1, 0.1, 0.2, 0.1, 1, 0.8, 0.6, 0.4, 0.1, 0., 0., 0., 
+        0., 0., 0., 0., 0.2, 0.3, .4, .5, 1., 0.7, 0.4, 0.1])
+    GP = MACRO_partial(N, LG, G, 0, 1, 2)
+    print(GP)
+    """
+    GP = numpy.zeros(LG) 
+    for IG in range(LG): 
+        IGIJ = IG + I * N + J * N * N
+        IGIK = IG + I * N + K * N * N
+        IGJK = IG + J * N + K * N * N
+        den1 = (1. - G[IGIK]) ** 0.5
+        den2 = (1. - G[IGJK]) ** 0.5 
+        den = den1 * den2
+        num = G[IGIJ] - G[IGIK] * G[IGJK]
+        GP[IG] = num / den
+    return GP
+#_______________________________________________________________________________
 

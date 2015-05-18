@@ -186,4 +186,20 @@ def SHAPER(B, D, LA):
     (A, LC, C, INDEX, ERRORS, S) = ER.SHAPER(LB, B, LD, D, LA, A, LC, C, INDEX, ERRORS, SPACE)
     return (A, C, INDEX, ERRORS)
 #_______________________________________________________________________________
+#_______________________________________________________________________________
+def SHAPE(B, D, LA): 
+    """
+    """
+    LB = B.size
+    LD = D.size
+    A = numpy.zeros(LA)
+    LC = LB + LA - 1
+    LCD = LC + LD - 1
+    C = numpy.zeros(LCD)
+    INDEX = 0
+    ASE = numpy.zeros(LCD)
+    SPACE = numpy.zeros(3 * LA)
+    (A, LC, C, ASE, SPACE) = ER.SHAPE(LB, B, LD, D, LA, A, LC, C, ASE,  SPACE)
+    return (A, C, ASE)
+#_______________________________________________________________________________
 
