@@ -4,6 +4,8 @@ ERpy binding to ER
 #_______________________________________________________________________________
 import ER
 import numpy
+zeros = numpy.zeros
+import pylab
 #_______________________________________________________________________________
 #_______________________________________________________________________________
 def POLRT(A): 
@@ -205,13 +207,20 @@ def SHAPE(B, D, LA):
 #_______________________________________________________________________________
 def MACRO(X, Y, LG): 
     """
-    MACRO multicahnnel cross correlation
+    MACRO multichannel cross correlation
     
-    X: (nDimX, nObsX)
-    Y: (nDimY, nObsY)
+    (G, N) = MACRO(X, Y, LG) 
+        
+    X: (nDimX, nObsX) (N, LX)
+    Y: (nDimY, nObsY) (N, LY)
+    
+    Output
+    (G, N) 
+    
     """
     (N, LX, X) = NDTOMM(X)
     (N, LY, Y) = NDTOMM(Y)
+    pylab.plot(X)
     G = zeros((LG * N * N))
     G = ER.MACRO(N, LX, X, LY, Y, LG, G)
     return (G, N)
@@ -246,4 +255,49 @@ def MACRO_partial(N, LG, G, I, J, K):
         GP[IG] = num / den
     return GP
 #_______________________________________________________________________________
-
+#_______________________________________________________________________________
+def Sxx(X, L): 
+    """
+    inter spectra
+    
+    $$ \Phi_{kj} (f) = C_{kj}(f) - i \, Q_{kj}(f) $$
+    
+    $$ \Phi_{kj} (f) = \Phi_{jk}^{*}(f) = C_{jk}(f) + i \, Q_{kj}(f) $$
+    
+    For power spectrum multiply the array by conjugate.
+    
+    """
+    (N, LX, X) = NDTOTM(X)
+    Rxx = zeros((L * N * N))
+    Rxx = ER.MACRO(N, LX, X, LX, X, L, Rxx)
+    S0 = ER.QUADCO(L, N, Rxx)
+    S1 = zeros((L, N, N), 'complex')
+    for i in range(N): 
+        for j in range(N): 
+            for k in range(L): 
+                ijk = L * N * i + j * L + k
+                S1[k, i, j] = S0[ijk]
+    S = zeros((L, N, N), 'complex')
+    for iF in range(L): 
+        for i in range(N): 
+            for j in range(i, N): 
+                if (i == j): 
+                    S[iF, i, j] = S1[iF, i, j]
+                else : 
+                    S[iF, i, j] = S1[iF, i, j] - complex(0, j) * S1[iF, j, i] 
+                    S[iF, j, i] = S[iF, i, j].conj() 
+    return (S, S1, N)    
+#_______________________________________________________________________________
+#_______________________________________________________________________________
+def plot_MACRO(G, LG, NX): 
+    """
+    plot_MACRO(G, LG, NX)
+    
+    """
+    for i in range(NX): 
+        for j in range(NX):
+            JIPO = j + NX * i + 1
+            pylab.subplot(NX, NX, JIPO)
+            ZJI = j * LG + LG * NX * i
+            pylab.plot(G[ZJI: ZJI + LG])
+#_______________________________________________________________________________
