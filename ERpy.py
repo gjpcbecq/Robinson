@@ -6,6 +6,7 @@ import ER
 import numpy
 zeros = numpy.zeros
 import pylab
+import ER_c
 #_______________________________________________________________________________
 #_______________________________________________________________________________
 def POLRT(A): 
@@ -104,7 +105,7 @@ def getMultiplexedMode(N, LX, X):
 
     Y = getMultiplexedMode(N, LX, X)
 
-"""
+    """
     Y = numpy.empty(N * LX)
     for I in range(N): 
         for J in range(LX):
@@ -218,11 +219,13 @@ def MACRO(X, Y, LG):
     (G, N) 
     
     """
-    (N, LX, X) = NDTOMM(X)
-    (N, LY, Y) = NDTOMM(Y)
-    pylab.plot(X)
+    (N, LX, X) = NDTOTM(X)
+    (N, LY, Y) = NDTOTM(Y)
+    # print(X)
+    # pylab.plot(X)
     G = zeros((LG * N * N))
-    G = ER.MACRO(N, LX, X, LY, Y, LG, G)
+    # G = ER.MACRO(N, LX, X, LY, Y, LG, G)
+    G = ER_c.MACRO(N, LX, X, LY, Y, LG, G)
     return (G, N)
 #_______________________________________________________________________________
 #_______________________________________________________________________________
@@ -289,9 +292,10 @@ def Sxx(X, L):
     return (S, S1, N)    
 #_______________________________________________________________________________
 #_______________________________________________________________________________
-def plot_MACRO(G, LG, NX): 
+def plot_MACRO(G, LG, NX, xt=[], xl=[], yt=[], rangeXY='', mode='oneSide'): 
     """
     plot_MACRO(G, LG, NX)
+    
     
     """
     for i in range(NX): 
@@ -299,5 +303,16 @@ def plot_MACRO(G, LG, NX):
             JIPO = j + NX * i + 1
             pylab.subplot(NX, NX, JIPO)
             ZJI = j * LG + LG * NX * i
-            pylab.plot(G[ZJI: ZJI + LG])
+            ZIJ = i * LG + LG * NX * j
+            Gl = G[ZIJ: ZIJ + LG][::-1]
+            Gr = G[ZJI: ZJI + LG]
+            if mode == 'oneSide': 
+                H = pylab.r_[Gr]
+            else : 
+                H = pylab.r_[Gl, Gr[1:]]
+            pylab.plot(H, '.-')
+            pylab.xticks(xt, xl)
+            pylab.yticks(yt, yt)
+            if (rangeXY != ''): 
+                pylab.axis(rangeXY)
 #_______________________________________________________________________________
